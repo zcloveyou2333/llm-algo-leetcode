@@ -11,7 +11,7 @@
 | Task | 主题 | 最小打卡 | 深入学习 | 记录 |
 | --- | --- | --- | --- | --- |
 | Task0 | 请求结构与指标 | 已完成 | 进行中 | [Task0 笔记](./task0-request-structure-and-metrics.md) |
-| Task1 | Prefill 与 Attention Kernel | 待开始 | 待开始 | - |
+| Task1 | Prefill 与 Attention Kernel | 已完成 | 进行中 | [Task1 笔记](./task1-prefill-and-attention-kernel.md) |
 
 ## 每个 Task 的完成标准
 
@@ -21,4 +21,3 @@
 4. 写一份不照抄教程的机制总结。
 5. 完成指定 Issue 打卡。
 6. 继续做至少一个超出打卡要求的对照实验。
-
