@@ -1,30 +1,77 @@
 """Shared runtime logic for the memory budget decision project."""
 
+import math
 from typing import Dict, List
 
 
 def validate_memory_budget(
     budget: Dict[str, float], quality_floor: Dict[str, float]
 ) -> Dict[str, object]:
-    required_budget_keys = ["memory_cap_mb", "min_samples_per_s"]
+    required_budget_keys = [
+        "memory_cap_mb",
+        "min_samples_per_s",
+        "min_memory_saving_mb",
+        "min_throughput_ratio",
+    ]
     required_quality_keys = ["max_val_loss"]
     missing_keys = [key for key in required_budget_keys if key not in budget]
     missing_keys += [key for key in required_quality_keys if key not in quality_floor]
-    return {"is_valid": not missing_keys, "missing_keys": missing_keys}
+    numeric_values = {key: budget.get(key) for key in required_budget_keys}
+    numeric_values.update({key: quality_floor.get(key) for key in required_quality_keys})
+    invalid_keys = [
+        key
+        for key, value in numeric_values.items()
+        if key not in missing_keys
+        and (not isinstance(value, (int, float)) or not math.isfinite(value))
+    ]
+    memory_cap = budget.get("memory_cap_mb")
+    min_throughput = budget.get("min_samples_per_s")
+    min_saving = budget.get("min_memory_saving_mb")
+    throughput_ratio = budget.get("min_throughput_ratio")
+    max_loss = quality_floor.get("max_val_loss")
+    if isinstance(memory_cap, (int, float)) and memory_cap <= 0:
+        invalid_keys.append("memory_cap_mb")
+    if isinstance(min_throughput, (int, float)) and min_throughput < 0:
+        invalid_keys.append("min_samples_per_s")
+    if isinstance(min_saving, (int, float)) and min_saving < 0:
+        invalid_keys.append("min_memory_saving_mb")
+    if isinstance(throughput_ratio, (int, float)) and not 0 <= throughput_ratio <= 1:
+        invalid_keys.append("min_throughput_ratio")
+    if isinstance(max_loss, (int, float)) and max_loss < 0:
+        invalid_keys.append("max_val_loss")
+    invalid_keys = list(dict.fromkeys(invalid_keys))
+    return {
+        "is_valid": not missing_keys and not invalid_keys,
+        "missing_keys": missing_keys,
+        "invalid_keys": invalid_keys,
+    }
 
 
 def summarize_memory_strategies(
-    candidates: List[Dict[str, float]],
+    candidates: List[Dict[str, object]],
     budget: Dict[str, float],
     quality_floor: Dict[str, float],
 ) -> Dict[str, object]:
-    feasible: List[Dict[str, float]] = []
+    feasible: List[Dict[str, object]] = []
     quality_failed = 0
     invalid_count = 0
     oom_count = 0
     evaluations = []
+    seen_names = set()
 
     for candidate in candidates:
+        name = candidate.get("name")
+        if not isinstance(name, str) or not name or name in seen_names:
+            invalid_count += 1
+            evaluations.append(
+                {
+                    "name": name,
+                    "status": "invalid",
+                    "reasons": ["missing_or_duplicate_name"],
+                }
+            )
+            continue
+        seen_names.add(name)
         if candidate.get("status", "ok") == "oom":
             oom_count += 1
             evaluations.append({"name": candidate.get("name"), "status": "oom", "reasons": ["oom"]})
@@ -32,7 +79,10 @@ def summarize_memory_strategies(
         memory = candidate.get("peak_memory_mb")
         throughput = candidate.get("samples_per_s")
         eval_loss = candidate.get("eval_loss", candidate.get("val_loss"))
-        if not all(isinstance(value, (int, float)) for value in (memory, throughput, eval_loss)):
+        if not all(
+            isinstance(value, (int, float)) and math.isfinite(value)
+            for value in (memory, throughput, eval_loss)
+        ):
             invalid_count += 1
             evaluations.append({"name": candidate.get("name"), "status": "invalid", "reasons": ["missing_or_non_numeric_metric"]})
             continue
@@ -71,6 +121,7 @@ def summarize_memory_strategies(
             and item.get("status", "ok") == "ok"
             and all(
                 isinstance(item.get(key), (int, float))
+                and math.isfinite(item.get(key))
                 for key in ("peak_memory_mb", "samples_per_s")
             )
         ),
@@ -92,14 +143,15 @@ def summarize_memory_strategies(
             if baseline and best
             else None
         ),
+        "baseline_available": baseline is not None,
         "best_peak_memory_mb": best["peak_memory_mb"] if best else None,
         "memory_saving_mb": (
             baseline["peak_memory_mb"] - best["peak_memory_mb"]
             if baseline and best
             else 0.0
         ),
-        "min_memory_saving_mb": budget.get("min_memory_saving_mb", 512.0),
-        "min_throughput_ratio": budget.get("min_throughput_ratio", 0.70),
+        "min_memory_saving_mb": budget["min_memory_saving_mb"],
+        "min_throughput_ratio": budget["min_throughput_ratio"],
         "evaluations": evaluations,
     }
 
@@ -109,22 +161,27 @@ def decide_memory_budget_project(summary: Dict[str, object]) -> Dict[str, object
     best_candidate = summary["best_candidate"]
     quality_failed_count = summary["quality_failed_count"]
 
+    if not summary.get("baseline_available", False):
+        return {
+            "decision": "reject",
+            "reason": "baseline_missing_or_invalid",
+            "next_action": "rerun_baseline_before_comparing_candidates",
+        }
     if feasible_count == 0:
         return {
             "decision": "reject",
             "reason": "no_strategy_meets_budget_and_quality",
             "next_action": "tighten_batch_or_rework_memory_plan",
         }
-    meaningful_memory_gain = summary.get("memory_saving_mb", 0.0) >= summary.get(
-        "min_memory_saving_mb", 512.0
-    )
+    meaningful_memory_gain = summary.get("memory_saving_mb", 0.0) >= summary[
+        "min_memory_saving_mb"
+    ]
     acceptable_throughput = (
-        summary.get("throughput_ratio") is None
-        or summary.get("throughput_ratio")
-        >= summary.get("min_throughput_ratio", 0.70)
+        summary.get("throughput_ratio") is not None
+        and summary["throughput_ratio"] >= summary["min_throughput_ratio"]
     )
     if (
-        best_candidate in {"checkpoint", "offload", "hybrid"}
+        best_candidate != "baseline"
         and meaningful_memory_gain
         and acceptable_throughput
     ):

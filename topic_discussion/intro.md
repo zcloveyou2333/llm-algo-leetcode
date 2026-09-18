@@ -128,6 +128,7 @@ Profiling 与 Evaluation 横跨五层：前者负责采集证据，后者负责�
 | 通信与并行 | [通信与并行（Communication and Parallelism）](./communication_parallel/intro.md) | 当你开始进入多卡训练、并行切分和通信瓶颈时 |
 | 性能分析 | [性能分析（Performance Analysis）](./profiling/intro.md) | 当你需要拿证据，而不是只靠经验猜测时 |
 | 多模态 | [多模态（Multimodal）](./multimodal/intro.md) | 当你要把图像、文本等多种输入接入训练、推理和评测时 |
+| 部署与异构系统 | [部署与异构系统（Deployment and Heterogeneous Systems）](./deployment_heterogeneous/intro.md) | 当你要理解模型产物、backend、设备协同和部署交付时 |
 
 **基础支撑专题**
 

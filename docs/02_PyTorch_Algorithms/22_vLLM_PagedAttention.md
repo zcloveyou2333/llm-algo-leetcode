@@ -30,23 +30,22 @@ PagedAttention 的思路是把 KV Cache 像分页内存一样管理：物理显�
 
 ---
 
-### Step 1: 核心思想与痛点
+### Step 1: KV Cache 为什么需要分页
+在线请求的长度和结束时间并不相同，如果每个请求都按最大长度预留连续 KV Cache，就会同时产生未使用尾部和难以复用的空闲空间。PagedAttention 把显存切成固定大小的 Block，按请求实际长度增长，并用 Block Table 记录逻辑位置到物理 Block 的映射。
+本节先观察分页布局和 Block 生命周期；前缀共享与请求调度属于后续机制。
 
-> **痛点 1：静态预留造成的空洞**
-> 在线请求不会同时开始或同时结束。若按最大长度为每个请求预留连续空间，已完成请求留下的空位和未使用的尾部都会降低显存利用率。请求如何动态组成 batch 属于 Serving 调度，本节先聚焦 Cache 的物理布局。
-
-> **痛点 2：KV Cache 的显存碎片化**
-> KV Cache 的最终长度通常无法预先确定。如果提前按 `max_len` 分配整块显存，可能产生明显的尾部和内部浪费，具体比例取决于请求长度分布和分配策略。
-> **解法：PagedAttention (vLLM)**
-> 借鉴操作系统的虚拟内存管理。把显存切分成固定大小的 **Block**（比如 1 个 Block 存 16 个 Token）。在生成时，按需分配物理 Block，并通过 `Block Table` 记录逻辑 Token 序列到物理块的映射。
-
-> **一句话闭环：** PagedAttention 的核心不是把 KV Cache 变“小”，而是把它变成“可按块寻址、可按需增长”的结构：prefill 申请所需 Block，decode 只在跨越边界时补 Block，计算阶段再依据块表访问离散缓存。
-> **本节的观察重点：** 验证 Block 分配、释放、复用和逻辑到物理的映射；前缀如何共享交给 24 / 34，请求如何动态调度交给 Serving 相关小节。
+| 管理方式 | 如何分配 KV Cache | 主要问题或收益 |
+|---|---|---|
+| 连续预留 | 按 `max_len` 一次分配连续空间 | 长度未知时产生尾部浪费和空洞 |
+| 虚拟内存类比 | 用逻辑位置访问物理存储 | 逻辑地址与物理地址可以分离 |
+| 固定 Block | 每个 Block 容纳固定数量 token，例如 16 个 | 分配粒度统一，便于回收和复用 |
+| 分页管理 | 按需分配固定大小的物理 Block | 物理块可以不连续，空间更容易复用 |
+| Block Table | 记录逻辑 Block 到物理 Block 的映射 | 计算时仍能按逻辑 token 顺序访问缓存 |
 
 ![PagedAttention 的 KV Cache 管理总览](../public/02_PyTorch_Algorithms/22_paged_attention_overview.svg)
 
-### Step 2: Block 分配与状态变化
-`BlockTable` 记录“逻辑块编号 → 物理块 ID”的映射。理解这张表如何随请求推进而变化，比先阅读管理器代码更重要：prefill 建立初始映射，decode 只在跨过边界时扩容，完成后释放物理块。
+### Step 2: 物理 Block 的分配与生命周期
+`BlockTable` 的状态会随着请求推进而变化：prefill 建立初始映射，decode 只在跨过边界时扩容，请求完成后释放物理块。先沿着这个生命周期观察状态变化，再进入管理器实现。
 
 | 阶段 | 输入 | 状态变化 | 需要检查的边界 |
 |---|---|---|---|
@@ -55,13 +54,9 @@ PagedAttention 的思路是把 KV Cache 像分页内存一样管理：物理显�
 | Release | 已完成请求 | 归还 Block 并清空块表 | 是否重复释放 |
 | Reuse | 新请求 | 使用已释放的物理 Block | 物理 Block 是否允许不连续 |
 
-### Step 3: PagedAttention 模拟机制
+### Step 3: Block Table 如何组织逻辑缓存
 
-为了让你在不写几千行 C++ 的情况下弄懂 PagedAttention，我们将用纯 Python 模拟它的核心数据结构：
-
-1. **Physical Block Pool (物理块池)**：一个预先分配好的大张量，形状为 `[num_blocks, block_size, hidden_dim]`。
-2. **Block Table (块表)**：每个 Request 都有一个专属的块表，它是一个整数列表（`List[int]`），记录了这个 Request 的第 $i$ 个逻辑块存在物理池的哪个索引里。
-3. **KV Cache Manager**：负责在 Token 生成时，“按需”分配新的物理块索引。
+用三个相互配合的数据结构表示分页缓存：物理池保存 Block，Block Table 保存逻辑到物理的映射，管理器负责分配、释放和按需扩容。
 
 | 数据结构 | 作用 | 应保持的不变量 |
 |---|---|---|
@@ -72,9 +67,15 @@ PagedAttention 的思路是把 KV Cache 像分页内存一样管理：物理显�
 
 ![PagedAttention 块表图](../public/02_PyTorch_Algorithms/22_paged_attention_blocks.svg)
 
-### Step 4: 实现 Block 管理器
+### Step 4: 实现并验证分页缓存管理器
 
-**要求**：请补全下方 `KVCacheManager`，实现一个极简版的 vLLM 内存管理器；`acquire_prefix` / `release_prefix` 的多请求 Prefix Cache 共享作为可选扩展。
+本 Step 把前面的布局和生命周期落到 `KVCacheManager`。题目区先完成理论容量、Block 分配与回收、跨边界扩容和逻辑缓存拼装；`acquire_prefix` / `release_prefix` 的 Prefix Cache 共享作为可选扩展。
+
+| 实现对象 | 需要完成的机制 | 验证重点 |
+|---|---|---|
+| 容量账本 | 计算单 token、单 Block 和总 KV Cache 容量 | K/V、层数、KV heads 和 dtype 字节数 |
+| Block 生命周期 | 实现 prefill 分配、decode 扩容、release 回收 | OOM 时状态不被部分修改 |
+| 逻辑缓存读取 | 按 Block Table 恢复逻辑 token 顺序 | 物理块不连续时仍能正确拼装 |
 
 
 ```python
@@ -194,12 +195,6 @@ class KVCacheManager:
 
 ```
 
-### 提示
-
-- `block_table` 是逻辑块到物理块的映射，不要把它和真实张量位置混淆。
-- `allocate_for_prefill` 先按需分配整段 prompt。
-- `allocate_for_decode` 只有在跨块边界时才追加新 block。
-- `get_physical_cache` 的作用是把离散物理块恢复成逻辑连续序列。
 ### 测试
 
 运行下面的测试单元，确认 prefill / decode / cache 拼装三段链路都正确。

@@ -27,7 +27,7 @@
 - [47. MoE Expert Parallel | MoE 专家并行](./47_MoE_Expert_Parallel.md)
 - [79. Distributed Parallel Benchmark | 分布式并行基准](./79_Distributed_Parallel_Benchmark.md)
 
-## 相关阅读
+## 相关项目入口
 
 **导语：** 完成 MoE 专家并行 benchmark 后，用 81 检查分布式推理迁移条件；如果研究训练后的在线场景，再参考 86 的系统收益评估。
 - [81. Distributed Inference Logic Validation | 分布式推理逻辑验证](./81_Distributed_Inference_Project.md)
@@ -212,3 +212,14 @@ def recommend_moe_parallel_run(
 - 实现方式：先复用 baseline 对比结果，再按吞吐收益、imbalance 边界和稳定性输出 `accept / tune / reject`。
 - 关键点：`tune` 主要对应吞吐收益已出现，但 router、capacity factor 或通信拓扑还没有一起收稳。
 - 项目意义：MoE 专家并行项目最后要回答的是“这套并行方案值不值得继续扩到真实集群”，而不是只看某个吞吐数字。
+
+## 相关阅读
+
+以下资料按“MoE 路由机制 → 专家并行实现 → 通信证据”排列，用于把本节的负载均衡、all-to-all 和吞吐权衡连接到真实系统。
+
+- [Switch Transformers 论文：稀疏专家路由](https://arxiv.org/abs/2101.03961)
+- [DeepSpeed-MoE 论文：Scaling Inference with MoE](https://arxiv.org/abs/2201.05596)
+- [MegaBlocks 官方仓库](https://github.com/databricks/megablocks)
+- [DeepSpeed 官方仓库](https://github.com/microsoft/DeepSpeed)
+- [79 分布式并行基准](./79_Distributed_Parallel_Benchmark.md)
+- [81 分布式推理项目](./81_Distributed_Inference_Project.md)

@@ -133,7 +133,7 @@ if should_step:
 ## 对应来源
 
 - [Part 02 · 17 自动求导基础](../../02_PyTorch_Algorithms/17_Autograd_Basics.ipynb)
-- [Part 02 · 19 激活检查点与 Offload](../../02_PyTorch_Algorithms/19_Activation_Checkpointing_and_Activation_Offload.ipynb)
+- [Part 02 · 19 激活检查点](../../02_PyTorch_Algorithms/19_Activation_Checkpointing.ipynb)
 - [Part 02 · 12 梯度累积](../../02_PyTorch_Algorithms/12_Gradient_Accumulation.ipynb)
 - [Part 02 · 13 端到端微调实验](../../02_PyTorch_Algorithms/13_End_to_End_Fine_Tuning_Experiment.ipynb)
 - [Part 02 · 74 Profiling 驱动的端到端优化](../../02_PyTorch_Algorithms/74_Profiling_Driven_End_to_End_Optimization.ipynb)

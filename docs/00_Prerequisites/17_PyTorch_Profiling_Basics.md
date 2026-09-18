@@ -1,6 +1,6 @@
 # 17. PyTorch Profiling Basics | PyTorch 性能分析基础
 
-**难度：** Medium | **环境：** GPU optional | **标签：** `PyTorch`, `profiling`, `性能分析` | **目标人群：** Part 2-4 前置补课者
+**难度：** Medium | **环境：** CPU-first | **标签：** `PyTorch`, `profiling`, `性能分析` | **目标人群：** Part 2-4 前置补课者
 
 > 🚀 **云端运行环境**
 >
@@ -10,25 +10,33 @@
 > [![Open In Studio](https://img.shields.io/badge/Open%20In-ModelScope-blueviolet?logo=alibabacloud)](https://modelscope.cn/my/mynotebook) *(国内推荐：魔搭社区免费实例)*
 
 
-本页聚焦：会用 `torch.profiler` 找热点；会看 CPU / CUDA 时间分布；会把 profiling 结果变成下一步排查动作。
+当一次运行变慢时，先不要直接修改模型或硬件配置。先用 profiler 观察一次运行由哪些算子和阶段组成，再比较单次延迟、处理吞吐和训练阶段耗时。本节从一个 CPU 可运行的小模型开始，学习如何读汇总表、导出 trace，并把局部热点放回完整训练步骤。
 
-**显存路线视角：** CPU profiler 可以帮助拆分阶段和验证调用流程；CUDA profiler 才能补充 kernel 时间、显存生命周期和同步证据。热点排序只是排查线索，不能单独证明某种显存策略有效；73 建立基线，74 再做 profiling 验证。
+示例默认使用 CPU；设备侧时间需要在 GPU 环境中单独测量。
 
 **关键词：** `profiler`, `trace`, `latency`
 
+![Profiling 时间证据图](../public/00_Prerequisites/17_profiling_evidence_map.svg)
+
 ## 前置阅读
-**导语：** 先看 0E 组页，把注意力和性能分析的边界对齐，再进入这一页会更顺。
+**导语：** 先从 0E 组页了解性能问题的观察入口，再用本页的最小模型把一次运行拆成可比较的时间证据。
 - [0E 组页](./0E.md)
-- [P1: 13. Profiling and Bottleneck Analysis | 性能分析与瓶颈定位](../01_Hardware_Math_and_Systems/13_Profiling_and_Bottleneck_Analysis.md)
-## 相关阅读
-**导语：** 本页先把 profiling 的最小判断讲清楚；如果想继续看显存占用和内存账本，再顺着看下面这一页。
-- [18. Memory Profiling and Optimization | 显存分析与优化](./18_Memory_Profiling_and_Optimization.md)
-- [20. Profiling and Memory Ledger | 性能剖析与显存账本](./20_Profiling_and_Memory_Ledger.md)
-- [74. Profiling Driven End-to-End Optimization | Profiling 驱动的端到端优化](../02_PyTorch_Algorithms/74_Profiling_Driven_End_to_End_Optimization.md)
+## 前置阅读
+**导语：** 先从 0E 组页了解性能问题的观察入口，再用本页的最小模型把一次运行拆成可比较的时间证据。
+- [0E 组页](./0E.md)
 
-## Q1：性能问题先要回答哪几个判断？
+## Q1：如何建立一次可比较的性能记录？
 
-任何性能问题都先问四件事：慢的是计算、内存还是通信；是单步慢还是累计慢；是 CPU 慢还是 GPU 真慢；测量前有没有把同步和噪声控制住。
+假设你已经有一个固定的模型和输入。一次运行等待时间变长，要看 latency；单位时间处理的样本或 token 变少，要看 throughput。第一次运行还可能包含初始化成本，所以先预热，再重复测量，最后把时间结果和 profiler 热点放进同一条记录。
+
+为了让两次结果可比较，至少固定模型、输入形状、dtype、batch 和线程设置；先丢弃预热轮次，再重复采样，最后报告平均值或中位数。单次运行适合发现线索，不足以证明稳定收益。
+
+| 记录项 | 作用 |
+|:---|:---|
+| latency | 判断一次运行等待多久，报告平均值或中位数 |
+| throughput | 判断单位时间处理多少样本或 token |
+| profiler hotspot | 找到时间集中的算子或阶段 |
+| 环境记录 | 保存模型、输入、dtype 和版本，保证结果可复查 |
 
 
 ```python
@@ -37,104 +45,111 @@ import torch.nn as nn
 from torch.profiler import profile, ProfilerActivity
 
 
+import time
+
 model = nn.Sequential(
     nn.Linear(100, 200),
     nn.ReLU(),
     nn.Linear(200, 10)
 )
 inputs = torch.randn(32, 100)
+for _ in range(2):
+    _ = model(inputs)
+latency_samples = []
+for _ in range(5):
+    start = time.perf_counter()
+    _ = model(inputs)
+    latency_samples.append((time.perf_counter() - start) * 1000)
+latency_ms = sum(latency_samples) / len(latency_samples)
+throughput_samples_s = inputs.shape[0] / (latency_ms / 1000)
 
 with profile(activities=[ProfilerActivity.CPU]) as prof:
     output = model(inputs)
 
+hotspot_table = prof.key_averages().table(sort_by='cpu_time_total', row_limit=5)
+summary = {
+    'latency_ms': round(latency_ms, 3),
+    'throughput_samples_s': round(throughput_samples_s, 1),
+    'hotspot_table': hotspot_table,
+}
+print(summary)
+
+```
+
+### Q1 代码：用预热、重复采样和 CPU profiler 建立基线
+
+这里验证前面的 summary 同时包含 latency、throughput 和热点报表；它是可比较的 CPU 基线，不代表稳定的 GPU benchmark。
+
+
+```python
+assert len(latency_samples) == 5
+assert summary['latency_ms'] > 0 and summary['throughput_samples_s'] > 0
+assert 'aten::linear' in summary['hotspot_table'] or 'aten::addmm' in summary['hotspot_table']
+print('✅ CPU 性能基线与热点记录通过')
+
+```
+
+## Q2：CPU 时间和 CUDA 时间分别说明什么？
+
+一次 GPU 运算通常经历“CPU 发起调用 → 数据到达 GPU → GPU 执行 kernel → CPU 等待或继续工作”。CPU time 记录主机侧调用和等待，CUDA time 记录 GPU kernel 执行；两者差异较大时，再检查同步、数据搬运或调度，而不是只看 CPU 排名。
+
+| 观察项 | 代表什么 | 常见解释 |
+|:---|:---|:---|
+| CPU time | 主机侧调用、调度和等待 | 可能存在数据准备或同步开销 |
+| CUDA time | GPU kernel 执行时间 | 反映设备侧计算耗时 |
+| CPU / CUDA 差异 | 主机与设备执行不同步 | 检查同步、搬运或调度 |
+
+
+```python
+# 本节只运行 CPU profiler；CUDA kernel 时间留给 Part02 的 GPU 实验。
+with profile(activities=[ProfilerActivity.CPU]) as prof:
+    _ = model(inputs)
 print(prof.key_averages().table(sort_by='cpu_time_total', row_limit=5))
 
 ```
 
-## Q1验证：最慢算子是否可以直接看到？
+### Q2 代码：验证 CPU 侧的调用时间基线
 
-这里先跑一个最小 CPU profiler，确认报表能出来，且最耗时的算子能被排序出来。
+这里确认 CPU 侧的 profiling 接口可以独立工作；真正的 CUDA 时间、同步和数据搬运需要在 Part02 的 GPU 实验中采集。
 
 
 ```python
-model = nn.Sequential(nn.Linear(100, 200), nn.ReLU(), nn.Linear(200, 10))
-inputs = torch.randn(32, 100)
+assert 'aten::linear' in hotspot_table or 'aten::addmm' in hotspot_table
+print('✅ CPU profiling 基线通过；CUDA 实测在 Part02 GPU 实验中完成')
+
+```
+
+## Q3：什么时候需要从汇总表升级到 trace？
+
+汇总表适合回答“哪个算子或阶段总时间最高”；如果还要知道阶段的先后、等待关系或多次迭代的变化，就需要 trace。trace 是可回看的执行记录，TensorBoard handler 只是查看它的一种工具出口。
+
+
+```python
 with profile(activities=[ProfilerActivity.CPU]) as prof:
-    _ = model(inputs)
-table = prof.key_averages().table(sort_by="cpu_time_total", row_limit=5)
-assert 'aten::linear' in table or 'aten::addmm' in table
-print('✅ profiler 基础通过')
-
-```
-
-## Q2：什么时候必须区分 CPU 时间和 CUDA 时间？
-
-如果有 GPU，就要把 CPU 时间和 CUDA 时间分开看。很多看起来慢的问题，真正慢的可能不是算子本身，而是同步、搬运或调度。
-
-
-```python
-if torch.cuda.is_available():
-    model_cuda = model.cuda()
-    inputs_cuda = inputs.cuda()
-    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-        _ = model_cuda(inputs_cuda)
-    print(prof.key_averages().table(sort_by='cuda_time_total', row_limit=5))
-else:
-    print('当前环境没有 GPU，跳过 CUDA profiling')
-
-```
-
-## Q2验证：CPU / CUDA 报表是否能区分？
-
-这里确认：有 GPU 时能看到 CUDA 报表，没有 GPU 时至少 CPU 报表还能工作。
-
-
-```python
-if torch.cuda.is_available():
-    model_cuda = model.cuda()
-    inputs_cuda = inputs.cuda()
-    with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-        _ = model_cuda(inputs_cuda)
-    table = prof.key_averages().table(sort_by="cuda_time_total", row_limit=5)
-    assert 'CUDA' in table or 'cuda_time_total' in table
-    print('✅ CPU / CUDA 区分通过')
-else:
-    print('✅ 当前环境无 GPU，CPU profiling 可用')
-
-```
-
-## Q3：什么时候必须导出 trace 或接入 TensorBoard？
-
-当你需要复盘一整段执行路径时，trace 比单次表格更直观；当你要和训练过程对齐时，TensorBoard 更方便持续查看。
-
-
-```python
-from torch.profiler import tensorboard_trace_handler
-
-with profile(activities=[ProfilerActivity.CPU], on_trace_ready=tensorboard_trace_handler("./log/profiler")) as prof:
     for _ in range(3):
         _ = model(inputs)
         prof.step()
-print('trace handler 已执行')
-
-```
-
-## Q3验证：trace handler 是否能工作？
-
-这里不用展开图形界面，只确认 trace handler 的最小接口能被触发。
-
-
-```python
-with profile(activities=[ProfilerActivity.CPU]) as prof:
-    _ = model(inputs)
 prof.export_chrome_trace('trace.json')
-print('✅ trace 导出通过')
+print('trace 已导出到 trace.json')
 
 ```
 
-## Q4：什么时候必须把 profiling 接到训练骨架里？
+### Q3 代码：检查可回看的 trace 文件
 
-如果你想知道慢在 forward、backward 还是 optimizer step，就不能只测单个算子，而要把 profiling 接进最小训练闭环。
+这里不展开图形界面，只确认 trace 文件已经生成；TensorBoard 是后续查看这类 trace 的另一种入口。
+
+
+```python
+from pathlib import Path
+trace_path = Path('trace.json')
+assert trace_path.exists() and trace_path.stat().st_size > 0
+print('✅ trace 导出通过:', trace_path)
+
+```
+
+## Q4：如何把局部热点放回完整训练步骤？
+
+如果一个训练步骤总耗时变长，只测某个 Linear 算子还不能说明问题：慢点可能在 forward、loss、backward，也可能在 optimizer step。把这些阶段放进同一个最小训练闭环，并用标签标记，才能把局部热点放回完整训练过程。
 
 
 ```python
@@ -142,32 +157,37 @@ optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
 criterion = nn.CrossEntropyLoss()
 targets = torch.randint(0, 10, (32,))
 with profile(activities=[ProfilerActivity.CPU]) as prof:
-    outputs = model(inputs)
-    loss = criterion(outputs, targets)
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-print(prof.key_averages().table(sort_by='cpu_time_total', row_limit=10))
+    with torch.profiler.record_function('zero_grad'):
+        optimizer.zero_grad()
+    with torch.profiler.record_function('forward'):
+        outputs = model(inputs)
+    with torch.profiler.record_function('loss'):
+        loss = criterion(outputs, targets)
+    with torch.profiler.record_function('backward'):
+        loss.backward()
+    with torch.profiler.record_function('optimizer_step'):
+        optimizer.step()
+training_table = prof.key_averages().table(sort_by='cpu_time_total', row_limit=20)
+print(training_table)
 
 ```
 
-## Q4验证：最小训练步里的热点是否可见？
+### Q4 代码：检查训练阶段标签和热点结果
 
-这里直接把 forward、loss、backward 和 step 包进 profiler，确认训练闭环的热点能被看见。
+这里复用前一个单元的结果，确认五个训练阶段都被标记，并且 loss 可以正常计算。
 
 
 ```python
-optimizer = torch.optim.SGD(model.parameters(), lr=0.01)
-criterion = nn.CrossEntropyLoss()
-targets = torch.randint(0, 10, (32,))
-with profile(activities=[ProfilerActivity.CPU]) as prof:
-    outputs = model(inputs)
-    loss = criterion(outputs, targets)
-    optimizer.zero_grad()
-    loss.backward()
-    optimizer.step()
-table = prof.key_averages().table(sort_by="cpu_time_total", row_limit=10)
-assert 'aten::linear' in table or 'aten::addmm' in table
-print('✅ 最小训练 profiling 通过')
+assert all(name in training_table for name in ['zero_grad', 'forward', 'loss', 'backward', 'optimizer_step'])
+assert torch.isfinite(loss).item()
+print('✅ 训练阶段标签、热点结果和 loss 检查通过')
 
 ```
+
+## 相关阅读
+**导语：** 完成本节后，可以继续学习显存账本、硬件瓶颈模型和真实 profiling 项目。
+- [18. Memory Profiling and Optimization | 显存分析与优化](./18_Memory_Profiling_and_Optimization.md)
+- [20. Profiling and Memory Ledger | 性能剖析与显存账本](./20_Profiling_and_Memory_Ledger.md)
+- [P1: 13. Profiling and Bottleneck Analysis | 性能分析与瓶颈定位](../01_Hardware_Math_and_Systems/13_Profiling_and_Bottleneck_Analysis.md)
+- [PyTorch Profiler 官方教程](https://docs.pytorch.org/tutorials/recipes/recipes/profiler_recipe.html)
+- [74. Profiling Driven End-to-End Optimization | Profiling 驱动的端到端优化](../02_PyTorch_Algorithms/74_Profiling_Driven_End_to_End_Optimization.md)

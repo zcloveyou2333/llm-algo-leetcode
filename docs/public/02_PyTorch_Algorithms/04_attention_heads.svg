@@ -12,8 +12,10 @@
     .small { font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size: 13px; font-weight: 500; fill: #475569; }
     .box { stroke-width: 2.5; rx: 16; }
     .panel { stroke-width: 2; rx: 22; }
-    .line { stroke: #475569; stroke-width: 3; fill: none; marker-end: url(#arrow); }
-    .branch { stroke: #64748b; stroke-width: 2.7; fill: none; marker-end: url(#arrow); }
+  .line { stroke: #475569; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+  .branch { stroke: #64748b; stroke-width: 2.7; fill: none; marker-end: url(#arrow); }
+  .cycle { stroke: #0284c7; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+  .readback { stroke: #7c3aed; stroke-width: 3; fill: none; stroke-dasharray: 9 7; marker-end: url(#arrow); }
   </style>
 </defs>
 <rect width="1500" height="680" fill="#f8fafc"/>
@@ -23,8 +25,6 @@
 <rect x="500" y="120" width="500" height="82" fill="#e0f2fe" class="box" stroke="#0284c7"/>
 <text x="750" y="153" text-anchor="middle" class="head">自回归 Attention</text>
 <text x="750" y="180" text-anchor="middle" class="body">当前 token 读取历史上下文，并产生下一步所需状态</text>
-<path d="M750 202 V235 H152 V365" class="branch"/>
-<path d="M750 235 H957 V365" class="branch"/>
 
 <rect x="45" y="275" width="760" height="280" fill="#ffffff" class="panel" stroke="#cbd5e1"/>
 <text x="75" y="312" class="group">当前步计算：从输入得到上下文表示</text>
@@ -39,6 +39,8 @@
 <path d="M230 417 H255" class="line"/><path d="M420 417 H445" class="line"/><path d="M610 417 H635" class="line"/>
 
 <rect x="850" y="275" width="605" height="280" fill="#fffbeb" class="panel" stroke="#fcd34d"/>
+<path d="M650 202 V240 H425 V275" class="branch"/>
+<path d="M850 202 V240 H1152 V275" class="branch"/>
 <text x="880" y="312" class="group">历史状态复用：让下一步 Decode 读取已有信息</text>
 <rect x="880" y="365" width="155" height="105" fill="#ede9fe" class="box" stroke="#7c3aed"/>
 <text x="957" y="401" text-anchor="middle" class="head">KV 组织</text><text x="957" y="430" text-anchor="middle" class="body">不同的 KV 组织方式</text><text x="957" y="453" text-anchor="middle" class="small">MHA / GQA / MQA；MLA 见后续扩展</text>
@@ -47,5 +49,11 @@
 <rect x="1260" y="365" width="155" height="105" fill="#dcfce7" class="box" stroke="#16a34a"/>
 <text x="1337" y="401" text-anchor="middle" class="head">下一步 Decode</text><text x="1337" y="430" text-anchor="middle" class="body">读取历史状态</text><text x="1337" y="453" text-anchor="middle" class="small">继续生成</text>
 <path d="M1035 417 H1060" class="line"/><path d="M1225 417 H1250" class="line"/>
+
+<!-- 两个分组之间的状态循环：当前步写入，下一步读取 -->
+<path d="M342 470 V590 H1147 V470" class="cycle"/>
+<path d="M1337 470 V625 H152 V470" class="readback"/>
+<text x="745" y="570" text-anchor="middle" class="small">当前 token 的 K / V 写入历史 Cache</text>
+<text x="745" y="650" text-anchor="middle" class="small">下一步 Decode 读取历史状态，进入新一轮计算</text>
 
 </svg>

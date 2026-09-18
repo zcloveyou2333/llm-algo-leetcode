@@ -28,26 +28,21 @@
 
 ---
 
-### Step 1: 提议、验证与分布保持
+### Step 1: 草稿提议与目标验证
 
-投机解码（Speculative Decoding）的核心，不是让一个模型直接替代另一个模型，而是让草稿模型（draft model）先快速提出一段 token，再由目标模型（target model）逐个验证。草稿模型通常更小、更快，但不负责最终决定；目标模型负责验证候选并决定最终输出。这样做的关键问题是：**如何在不改变最终分布的前提下，尽量减少目标模型的逐 token 推理次数**。
+投机解码让草稿模型（draft model）先提出一段 token，再由目标模型（target model）集中验证。草稿模型负责快速提议，目标模型负责最终确认；学习重点是理解两者如何协作，减少目标模型逐 token 推进的次数，同时保持目标分布的生成语义。
 
-> **接受概率公式**
-> 对于草拟 token $x$，小模型给出的概率记为 $q(x)$，大模型给出的概率记为 $p(x)$。
-> - 若 $p(x) \ge q(x)$，直接接受该 token。
-> - 若 $p(x) < q(x)$，则以 $\frac{p(x)}{q(x)}$ 的概率接受它。
-> 
-> 等价地，接受概率可以写成：
-> $$\alpha(x) = \min\left(1, \frac{p(x)}{q(x)}\right)$$
-
-**为什么有机会做到分布等价？**
-接受概率本身只负责判断草稿 token；发生拒绝时，还必须从 $\max(p-q,0)$ 归一化得到的 residual distribution 重新采样，全部接受时还要从目标模型的下一个位置采样 bonus token。缺少这两步，不能声称输出分布与目标模型一致。
+| 参与者 | 负责什么 | 产生什么 |
+|---|---|---|
+| 草稿模型 | 快速提出连续候选 | `draft_tokens` 与 `draft_probs` |
+| 目标模型 | 在对应位置验证候选 | `target_probs`，包含验证位置和 bonus 位置 |
+| 单轮流程 | 根据验证结果决定推进长度 | 接受的 token、修正 token 或 bonus token |
 
 ![Speculative Decoding 流程图](../public/02_PyTorch_Algorithms/23_speculative_decoding_flow.svg)
 
-### Step 2: 验证输入与位置关系
+### Step 2: 验证位置与概率输入
 
-单步接口的输入、用途和检查重点如下：
+一轮验证需要把草稿 token、草稿概率和目标概率按位置对齐。`K` 表示草稿 token 数，目标模型需要提供前 `K` 行验证概率，并额外提供一行用于全部接受时的 bonus token。
 
 | 输入 / 状态 | 形状或内容 | 用途 |
 |---|---|---|
@@ -56,15 +51,29 @@
 | `draft_tokens` | 长度为 K 的 token 序列 | 指出每个位置实际提出的候选 |
 | 输入检查 | 非负、行归一化、长度和词表维度 | 防止概率与位置错位后继续计算 |
 
-### Step 3: 接受、修正与推进状态
-按草稿位置从前到后处理：接受就继续验证下一个位置；拒绝就从 residual distribution 采样一个修正 token 并结束本轮；全部 K 个草稿都接受时，再从最后一行目标分布采样 bonus token。这个流程使“接受长度”和“回退位置”成为可检查的状态结果。
+### Step 3: 接受、修正与生成推进
+按草稿位置从前到后处理：接受就继续验证，拒绝就从 residual distribution 采样修正 token 并结束本轮；全部 `K` 个草稿都接受时，再从目标模型的 bonus 位置采样一个 token。接受概率为：
+
+$$\alpha(x) = \min\left(1, \frac{p(x)}{q(x)}\right)$$
 
 CPU 题目区验证概率归一化、接受/拒绝、residual correction、bonus token 和控制流；真实 acceptance rate、目标模型 forward 次数、TTFT、TPOT 和吞吐由 68 的匹配 backend 实验验证。
 
+| 结果 | 接受规则或使用的分布 | 本轮推进 |
+|---|---|---|
+| 接受 | `p(x) >= q(x)` 时必然接受；否则按 `p(x) / q(x)` 接受 | 进入下一个验证位置 |
+| 拒绝 | 对 `max(target - draft, 0)` 归一化后采样 residual correction | 输出修正 token，结束本轮 |
+| 全部接受 | 所有草稿 token 通过验证，使用最后一行 `target_probs` | 追加 bonus token |
+
 ![Speculative Decoding：验证结果决定下一步](../public/02_PyTorch_Algorithms/23_speculative_acceptance_flow.svg)
 
-### Step 4: 实现单轮投机解码
-请补全 `speculative_decode_step`，按输入检查、逐位置接受、拒绝修正和全接受 bonus 四个阶段返回结果。返回值至少包含最终 token、接受数量、是否拒绝和检查到的 target 位置。
+### Step 4: 实现并验证单轮投机解码
+本 Step 将前面的流程实现为 `speculative_decode_step`。题目区按输入检查、逐位置接受、拒绝修正和全接受 bonus 四个阶段返回结果；返回值至少包含最终 token、接受数量、是否拒绝和检查到的 target 位置。
+
+| 实现阶段 | 主要任务 | 验证重点 |
+|---|---|---|
+| 输入检查 | 检查概率形状、归一化和 token 位置 | 非法输入明确报错 |
+| 接受判断 | 按位置计算接受概率并采样 | 接受数量和停止位置正确 |
+| 修正与 bonus | 分别处理拒绝和全接受 | residual 与 bonus 分支不混淆 |
 
 
 ```python

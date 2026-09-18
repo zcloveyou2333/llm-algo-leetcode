@@ -2,9 +2,9 @@
 
 ## 页面目标
 
-本节负责把“为什么慢”先拆成可观察的时间问题：operator、kernel、launch、等待和阶段切换。
+本节承接 **Task1–Task2**。先用统一条件建立 baseline，再把“为什么慢”拆成可观察的时间问题：operator、kernel、launch、等待和阶段切换。
 
-本节的输出是时间瓶颈假设：问题主要属于计算、调度、启动开销还是等待。只有当时间线显示出内存驻留或分配行为时，才进入下一节。
+本节的输出是 baseline 加时间瓶颈假设：问题主要属于计算、调度、启动开销还是等待。若时间线同时暴露显存驻留或分配行为，再把证据交给 Task3。
 
 ## 问题起点
 
@@ -38,7 +38,7 @@
 ## 对应 Part
 
 - [Part 00 · 17 Profiling 基础](../../00_Prerequisites/17_PyTorch_Profiling_Basics.ipynb)
-- [Part 00 · 20 Profiling 与显存账本](../../00_Prerequisites/20_Profiling_and_Memory_Ledger.ipynb)
+- [Part 00 · 20 Profiling 与显存账本](../../00_Prerequisites/20_Profiling_and_Memory_Ledger.ipynb)：完成时间拆分后，用于汇总时间、显存与下一步验证。
 - [Part 02 · 74 Profiling 驱动的端到端优化](../../02_PyTorch_Algorithms/74_Profiling_Driven_End_to_End_Optimization.ipynb)
 
 ## 本节要点

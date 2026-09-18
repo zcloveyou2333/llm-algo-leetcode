@@ -33,47 +33,63 @@
 
 ### Step 1: 共享前缀为什么值得缓存
 
-长 prompt 的压力不只来自 token 数量，还来自重复：系统提示词、工具说明、RAG 模板和多轮历史可能在不同请求中保持不变。如果每个请求都从头执行 prefill，同一段前缀会被重复计算，并重复写入 KV Cache。
+长 prompt 的压力不只来自 token 数量，还来自重复：系统提示词、工具说明、RAG 模板和多轮历史可能在不同请求中保持不变。如果每个请求都从头执行 prefill，同一段前缀会被重复计算。Prefix Caching 的输入是已缓存的 token 前缀和新请求的 prompt，输出是可复用的前缀范围以及需要继续计算的后缀。
 
-Prefix Caching 把已经完成 prefill 的公共前缀保留下来。新请求只有从开头连续命中的 token 才能复用；中间位置偶然相同的 token 不构成前缀命中。
+| 要素 | 学习者需要识别的内容 | 作用 |
+|---|---|---|
+| 重复来源 | System Prompt、工具说明、RAG 模板、历史上下文 | 解释为什么值得缓存 |
+| 可复用对象 | 从 prompt 开头连续出现的 token 前缀 | 减少重复 prefill |
+| 新增计算 | 首个不一致 token 之后的后缀 | 继续完成本次请求的 prefill |
+
 
 ![前缀缓存与分块预填充总览](../public/02_PyTorch_Algorithms/34_prefix_chunk_overview.svg)
 
-### Step 2: 命中前缀与未命中 suffix
+### Step 2: 命中前缀与未命中后缀
 
-对新请求先做最长前缀匹配，再把输入拆成两部分：
+对新请求先做最长前缀匹配，再把输入拆成两部分。只有从 prompt 开头连续相同的 token 才能命中，中间位置偶然相同的 token 不构成前缀命中：
 
 $$
 prompt = reusable\_prefix + suffix
 $$
 
-`reusable_prefix` 使用已有的 prefill 结果，`suffix` 仍需送入模型计算。命中越长，重复 prefill 的 token 越少；没有命中时，整个 prompt 都属于 suffix。
+| 输出部分 | 来源 | 执行含义 |
+|---|---|---|
+| `reusable_prefix` | 已缓存且从开头连续命中的 token | 使用已有 prefill 结果 |
+| `suffix` | `hit_len` 之后的剩余 token | 继续送入模型计算 |
+| 无命中 | `hit_len = 0` | 整个 prompt 都属于 suffix |
 
-### Step 3: 长 suffix 如何进入分块执行
+### Step 3: 长后缀如何进入分块执行
 
-长 suffix 如果一次性进入 prefill，可能占用较多显存和计算时间。Chunked Prefill 将未命中的部分拆成固定大小的执行块：
-
-在确定可复用前缀后，Chunked Prefill 再把未命中的 suffix 拆成：
+长 suffix 如果一次性进入 prefill，可能形成较大的工作集。确定可复用前缀后，Chunked Prefill 只处理未命中的 suffix，并把它拆成固定大小的执行块：
 
 $$
 chunks = [block_1, block_2, \dots, block_n]
 $$
 
-每个 chunk 最多包含 `block_size` 个 token，执行计划可以按块推进。本节的 tuple 只表示 token 分块；真实系统还要把它映射到 KV block、page 或其他调度单元。
+| 分块字段 | 含义 | 对资源压力的影响 |
+|---|---|---|
+| `block_size` | 每个 chunk 最多包含的 token 数 | 控制单次 prefill 的工作集大小 |
+| `chunks` | suffix 被切出的 token 块序列 | 允许按块推进，而不是一次处理全部 suffix |
+| 尾块 | 最后一个不足 `block_size` 的 chunk | 保留真实变长输入的边界情况 |
 
 ![前缀命中如何进入执行计划](../public/02_PyTorch_Algorithms/34_prefix_hit_plan.svg)
 
-### Step 4: 用一个管理器串起这条链路
+### Step 4: 实现前缀缓存与分块计划
 
-本节用最小 `PrefixCacheManager` 表示上述流程。真实系统缓存的是 KV 张量，这里先用 token 序列和 tuple block 验证控制逻辑。请补全：统一 token 表示、切块、登记前缀、最长匹配、suffix 拆分、分块计划、命中账本和 suffix 计划。
+本节用最小 `PrefixCacheManager` 表示上述流程。这里用 token 序列和 tuple block 验证控制逻辑；真实系统还需要把命中范围映射到 KV Cache 的存储和生命周期。
 
-完成后检查命中长度、suffix、`reuse_ratio` 和 suffix chunks 是否符合预期。这里的 token 数和比例用于验证机制账本，不代表真实 KV 显存节省或吞吐提升。
+完成后检查命中长度、后缀、`reuse_ratio` 和后缀 chunks 是否符合预期；这些数量用于验证机制账本，不代表真实 KV 显存节省或吞吐提升。
 
+| 实现阶段 | 需要完成的内容 | 输出与检查项 |
+|---|---|---|
+| 表示与分块 | 统一 token 类型，按 `block_size` 切分 | token 序列、chunk 边界和尾块 |
+| 前缀命中 | 登记前缀、计算最长匹配、拆出 suffix | `hit_len`、`reusable_prefix`、`suffix` |
+| 执行账本 | 只对 suffix 生成分块计划并统计复用 | `hit_tokens`、`uncached_tokens`、`reuse_ratio` |
 ### 提示
 
-- `match_prefix` 只允许从 prompt 开头连续命中。
-- `split_prompt` 的目标是把可复用前缀和待 prefill 后缀分开。
-- `chunked_prefill_plan` 复用同一套切块逻辑，避免缓存和执行计划口径不一致。
+- **基础表示**：`_normalize_tokens` 和 `_chunk_tokens` 统一 token 类型，并处理不足一个 block 的尾块。
+- **命中路径**：`add_prefix`、`match_prefix` 和 `split_prompt` 负责登记公共前缀、找最长命中并拆出 suffix。
+- **执行账本**：`chunked_prefill_plan` 只对 suffix 生成分块计划，再统计 `hit_tokens`、`uncached_tokens` 和 `reuse_ratio`。
 
 ```python
 from typing import List, Sequence, Tuple
@@ -374,7 +390,7 @@ class PrefixCacheManager:
 **证据边界**
 - CPU 代码验证 token 匹配、suffix 拆分和 chunk 计划；真实 KV Tensor 的显存占用、cache hit rate、TTFT、TPOT 和吞吐需要 69 节 backend benchmark。
 - 这里没有实现 LRU、引用计数、物理 block 分配或跨 worker KV 传输；这些属于 serving / 系统扩展。
-### Step 5: 可选 GPU 分块探针
+### Step 5: GPU 可选实验：观察分块资源压力
 
 本实验用合成 hidden states 观察“一次性处理 suffix”和“按 chunk 处理 suffix”的分配峰值。它用于理解分块带来的资源边界，不等同于真实 Prefix Cache、KV Cache 或 serving benchmark。
 

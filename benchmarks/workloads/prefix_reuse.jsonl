@@ -1,0 +1,5 @@
+{"prompt": "You are reviewing a serving system. Shared context: explain how a prefix cache affects repeated requests. Request 01: summarize the main benefit."}
+{"prompt": "You are reviewing a serving system. Shared context: explain how a prefix cache affects repeated requests. Request 02: identify the main memory trade-off."}
+{"prompt": "You are reviewing a serving system. Shared context: explain how a prefix cache affects repeated requests. Request 03: name one useful latency metric."}
+{"prompt": "You are reviewing a serving system. Shared context: explain how a prefix cache affects repeated requests. Request 04: name one workload condition that helps."}
+{"prompt": "You are reviewing a serving system. Shared context: explain how a prefix cache affects repeated requests. Request 05: name one workload condition that hurts."}

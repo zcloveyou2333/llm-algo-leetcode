@@ -15,13 +15,9 @@
 
 ## 本节导读
 
-当 activation 占用超过 GPU 预算时，除了 checkpointing，还可以把部分激活搬到 CPU 或 host memory，并在反向传播需要时取回。本节用预算模型计算保留量、搬运量和理论传输时间，先把搬运路线的成本结构拆开。
+当 activation 占用超过 GPU 预算时，可以把暂时不用的激活搬到 CPU 或 host memory，并在反向传播需要时取回。本节从一块激活的生命周期出发，计算保留量、搬运量和理论传输时间，帮助你判断显存收益是否值得额外等待。
 
-这是一节**机制原理节**：它和 `19` 是兄弟关系。`19` 主讲 checkpointing 的重算路线；`42` 主讲 offload 的搬运路线。两者都在回答“怎么把训练显存压下来”，但实现机制不同，代价模型也不同。
-
-在显存路线里，offload 是否值得采用取决于 GPU 预算、可搬运对象、host / PCIe / NVLink 带宽和额外传输时间。若传输代价过高，应同时比较 checkpointing、batch 调整和 mixed precision 等方案。
-
-完成本节后，你应该能够解释激活为什么需要在不同存储层级之间移动，判断搬运收益是否可能被带宽与同步成本抵消，并知道哪些结论需要放回固定 workload 做真实验证。
+学习过程中，你会依次回答三个问题：哪些激活可以搬出 GPU、搬运需要付出多少带宽与同步代价、怎样用固定 workload 验证预算判断。完成后，你应该能够解释不同存储层级之间的移动，并把显存、step time 和吞吐放在同一张证据表中比较。
 
 **关键词：** `offload`, `transfer`, `bandwidth`
 
@@ -29,7 +25,7 @@
 
 ## 前置阅读
 
-**导语：** 进入本节前，先能区分 checkpointing 的重算路径和反向传播需要的激活状态，再观察 offload 如何用设备间搬运换取 GPU 空间。
+**导语：** 进入本节前，先理解反向传播为什么需要激活状态，以及 checkpointing 如何通过重算减少驻留；随后观察 offload 如何通过设备间搬运释放 GPU 空间。
 
 - [19. Activation Checkpointing | 激活检查点](./19_Activation_Checkpointing_and_Activation_Offload.md)
 - [18. Activation and Loss Backward | 激活与损失反向](./18_Activation_and_Loss_Backward.md)

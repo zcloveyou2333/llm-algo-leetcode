@@ -1,0 +1,28 @@
+{
+  "stage": "environment_preflight",
+  "run_mode": "dry_run",
+  "runtime": {
+    "python": "3.11.5",
+    "torch": "2.5.1+cu121",
+    "cuda": "12.1",
+    "cuda_available": false,
+    "device": "cpu"
+  },
+  "config": {
+    "out_features": 1024,
+    "in_features": 1024,
+    "calibration_samples": 32,
+    "bits": 4,
+    "group_size": 32,
+    "protect_ratio": 0.05,
+    "warmup": 2,
+    "iters": 10,
+    "seed": 42,
+    "model_id": "Qwen/Qwen2.5-0.5B-Instruct"
+  },
+  "evidence_level": "environment_preflight",
+  "decision": {
+    "decision": "ready_to_measure",
+    "reason": "仅完成环境与配置检查，尚未运行 GPU 校准测量。"
+  }
+}

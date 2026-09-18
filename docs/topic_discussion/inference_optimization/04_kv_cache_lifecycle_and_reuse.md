@@ -2,7 +2,7 @@
 
 ## 页面目标
 
-从 Decode 持续读取历史状态开始，跟踪 KV Cache 如何增长、复用并逐渐成为上下文、batch 和并发的容量边界。
+从上一节留下的 Decode 状态开始，跟踪 KV Cache 如何保存、增长、复用并逐渐成为上下文、batch 和并发的容量边界。
 
 本节是 Cache 主题的主要正文入口：22、24、34 分别展开分页分配、前缀匹配和 Prefix Cache；69 负责真实复用收益验证；71 作为 MLA 表示方式的架构扩展。多请求队列、批处理和 PD 分离在后续 Serving 正文中继续展开。
 
@@ -41,11 +41,38 @@ KV Cache 随层数、KV heads、上下文长度和 batch 增长。先把“每�
 | `TTFT`、`TPOT`、throughput、P99 | Cache 策略是否改善请求性能 |
 | `quality`、OOM、`evidence_level` | 结果是否可以形成可复查结论 |
 
+容量治理还需要明确 Cache 在“继续保留、驱逐、重算、压缩”之间如何选择。驱逐通常释放容量但可能增加后续 Prefill；重算减少驻留状态但会增加计算；量化或更紧凑的表示减少字节数，却需要检查质量、kernel 和 backend 支持。这个取舍是 Cache 实验从账本走向服务结果的关键。
+
+| 容量动作 | 直接收益 | 代价或风险 | 需要记录 |
+|:---|:---|:---|:---|
+| 保留 | 命中后可直接继续 Decode | 并发容量下降、OOM 风险上升 | Cache 使用量、命中率 |
+| 驱逐 | 释放显存、提高可接纳并发 | 再次请求需要重算 | 驱逐次数、重算 tokens、TTFT |
+| 重算 | 降低驻留状态需求 | 增加 Prefill 计算 | 重算时间、TPOT/TTFT |
+| 压缩或量化 | 降低每 token 的 Cache 字节数 | 质量和 kernel 支持风险 | 字节数、质量、速度、evidence level |
+
+Cache 复用还必须满足正确性条件。相同的文本前缀并不总能安全共享状态；模型 revision、tokenizer、LoRA adapter、旋转位置编码位置和采样上下文等发生变化时，需要重新判断 Cache 是否兼容。命中率提升只有在输出语义和租户隔离都保持正确时才具有服务价值。
+
+| 检查项 | 需要保持一致或明确区分的内容 | 失败时的处理 |
+|:---|:---|:---|
+| 模型与 tokenizer | model revision、词表和特殊 token | 不复用，重新建立 Cache |
+| 位置与上下文 | position offset、RoPE 配置、上下文边界 | 校验位置后再命中 |
+| 适配器与参数 | LoRA adapter、量化配置、采样相关状态 | 按配置隔离 Cache |
+| 租户与权限 | 不同用户或权限域的前缀状态 | 禁止跨域共享 |
+| 失效与回收 | 版本变化、驱逐、异常中断 | 清理引用并记录失效原因 |
+
 CPU 实验可以验证 token 匹配、Block 账本和生命周期逻辑；真实 Cache、显存、backend 命中率和服务指标需要 GPU/backend workload。TTFT 的变化只能说明请求表现发生变化，不能单独证明 Cache 命中。
 
 这里使用 vLLM 的 PagedAttention 和 SGLang 的 RadixAttention 作为两种典型机制的学习入口；实际 backend 可能同时支持分页、前缀复用和其他 Cache 管理策略，不能把机制名称理解成 backend 的唯一能力。
 
 MLA 放在本路线中属于架构扩展：它改变 KV Cache 的内部表示方式，而不是改变物理 Block 分配或前缀匹配规则。需要比较 MHA、GQA 和 MLA 时，进入 [71 MLA / KV Cache 结构基准](../../02_PyTorch_Algorithms/71_MLA_KV_Cache_Architecture_Benchmark.md)。
+
+因此，Attention 演进与 Cache 管理需要分开观察：MHA、GQA、MQA 和 MLA 改变的是“每个 token 需要保存或重构什么状态”；PagedAttention 和 Prefix Cache 改变的是“这些状态如何分配和复用”。前者主要影响表示成本，后者主要影响运行时容量和并发行为。
+
+| 层次 | 代表机制 | 主要问题 | 关键证据 |
+|:---|:---|:---|:---|
+| 状态表示 | MHA、GQA、MQA、MLA | 每 token 的状态规模和重构成本 | Cache bytes、重构计算、质量 |
+| 物理分配 | PagedAttention、Block 管理 | 碎片、尾块浪费、可接纳并发 | Block 利用率、peak memory |
+| 状态复用 | Prefix Cache、RadixAttention | 重复前缀是否可以共享 | hit rate、reused tokens、TTFT |
 
 参考入口：论文 [PagedAttention](https://arxiv.org/abs/2309.06180)；开源项目 [vLLM](https://github.com/vllm-project/vllm) 与 [SGLang](https://github.com/sgl-project/sglang)。
 

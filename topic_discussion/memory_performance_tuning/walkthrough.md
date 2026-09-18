@@ -29,7 +29,7 @@ Task1 再把对象放回硬件和运行时环境：dtype 决定对象的字节�
 故事可以从一个常见症状开始：某个 batch、序列长度或训练阶段触发 OOM。第一反应往往是缩 batch，但这通常只是止血动作，不是判断结论。更稳的做法是先沿训练侧显存链路排一遍：
 
 - Part 02 [12 Gradient Accumulation](../../02_PyTorch_Algorithms/12_Gradient_Accumulation.ipynb)
-- Part 02 [19 Activation Checkpointing and Activation Offload](../../02_PyTorch_Algorithms/19_Activation_Checkpointing_and_Activation_Offload.ipynb)
+- Part 02 [19 Activation Checkpointing](../../02_PyTorch_Algorithms/19_Activation_Checkpointing.ipynb)
 - Part 02 [42 Activation Offload](../../02_PyTorch_Algorithms/42_Activation_Offload.ipynb)
 - Part 02 [73 Training Performance Analysis](../../02_PyTorch_Algorithms/73_Training_Performance_Analysis.ipynb)
 - Part 02 [76 Activation / Checkpoint / Offload Benchmark](../../02_PyTorch_Algorithms/76_Activation_Checkpoint_Offload_Benchmark.ipynb)
@@ -99,7 +99,7 @@ Part00 的 `09 Module` 和 `10 State Dict` 也要放回这里理解：前者帮�
 - Part 02 [29 Tensor Parallelism](../../02_PyTorch_Algorithms/29_Tensor_Parallelism_Sim.ipynb)：观察张量切分与通信；
 - Part 02 [79–81 分布式项目](../../02_PyTorch_Algorithms/79_Distributed_Parallel_Benchmark.ipynb)：验证多 GPU 显存分摊、通信时间和推理扩展。
 
-这条分支要同时记录单卡显存、通信时间、扩展效率和稳定性。`13 Profiling` 与 `74` 可以复用来解释通信、搬运、重算和 kernel 代价，但 Profiling 是证据方法，不是分布式切分策略本身。
+这条分支要同时记录单卡显存、通信时间、扩展效率和稳定性。具体机制见[07 分布式显存与系统扩展](./07_distributed_memory_and_system_extension.md)；`13 Profiling` 与 `74` 可以复用来解释通信、搬运、重算和 kernel 代价，但 Profiling 是证据方法，不是分布式切分策略本身。
 
 ## 最终结论长什么样
 

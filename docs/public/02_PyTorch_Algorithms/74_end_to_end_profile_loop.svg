@@ -1,12 +1,64 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="380" viewBox="0 0 900 380">
-  <style>text{font-family:"Noto Sans CJK SC","Microsoft YaHei",sans-serif;fill:#1f2937}.title{font-size:24px;font-weight:700}.label{font-size:17px;font-weight:600}.small{font-size:14px}.box{fill:#f8fafc;stroke:#475569;stroke-width:2;rx:12}.arrow{stroke:#64748b;stroke-width:3;marker-end:url(#a)}</style>
-  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#64748b"/></marker></defs>
-  <text x="450" y="34" text-anchor="middle" class="title">74：从指标变化走到瓶颈证据</text>
-  <rect x="35" y="105" width="180" height="105" class="box"/><text x="125" y="140" text-anchor="middle" class="label">73 / 76 / 75</text><text x="125" y="170" text-anchor="middle" class="small">指标、候选、预算</text><text x="125" y="193" text-anchor="middle" class="small">已有结论</text>
-  <rect x="245" y="105" width="180" height="105" class="box"/><text x="335" y="140" text-anchor="middle" class="label">采集 trace</text><text x="335" y="170" text-anchor="middle" class="small">forward / backward</text><text x="335" y="193" text-anchor="middle" class="small">重算 / 搬运 / 同步</text>
-  <rect x="455" y="105" width="180" height="105" class="box"/><text x="545" y="140" text-anchor="middle" class="label">提出假设</text><text x="545" y="170" text-anchor="middle" class="small">计算、带宽、容量</text><text x="545" y="193" text-anchor="middle" class="small">或通信瓶颈</text>
-  <rect x="665" y="105" width="200" height="105" class="box"/><text x="765" y="140" text-anchor="middle" class="label">改一个变量并复测</text><text x="765" y="170" text-anchor="middle" class="small">收益 + 代价</text><text x="765" y="193" text-anchor="middle" class="small">accept / tune / reject</text>
-  <path d="M215 157 H240 M425 157 H450 M635 157 H660" class="arrow"/>
-  <path d="M765 215 V285 H125 V215" fill="none" class="arrow"/>
-  <text x="445" y="315" text-anchor="middle" class="small">复测结果回到同一 workload，检查因果关系</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">性能优化实验的整体结构</title>
+  <desc id="desc">一次可复查的性能优化实验由比较对象、实验条件、成功判据和证据记录共同组成。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="10" markerHeight="10" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M1 1L11 6L1 11Z" fill="#475569"/>
+    </marker>
+    <style>
+      text{font-family:"Noto Sans CJK SC","Microsoft YaHei",sans-serif;fill:#1f2937}
+      .title{font-size:28px;font-weight:700}.subtitle{font-size:16px;font-weight:500;fill:#475569}
+      .group{font-size:18px;font-weight:700}.label{font-size:17px;font-weight:700}.small{font-size:14px;fill:#334155}
+      .panel{stroke-width:2;rx:20}.node{stroke-width:2;rx:12}.flow{fill:none;stroke:#475569;stroke-width:2.5;marker-end:url(#arrow)}
+    </style>
+  </defs>
+
+  <rect width="1200" height="560" rx="20" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="600" y="48" text-anchor="middle" class="title">一次可复查的性能优化实验</text>
+  <text x="600" y="78" text-anchor="middle" class="subtitle">比较对象、实验条件、成功判据和证据记录共同决定实验结论是否可信</text>
+
+  <rect x="390" y="105" width="420" height="65" class="node" fill="#e0f2fe" stroke="#0284c7"/>
+  <text x="600" y="133" text-anchor="middle" class="label">先明确要回答的问题</text>
+  <text x="600" y="156" text-anchor="middle" class="small">改动是否改善目标，并且值得继续采用</text>
+
+  <rect x="35" y="215" width="265" height="270" class="panel" fill="#eff6ff" stroke="#bfdbfe"/>
+  <text x="167" y="250" text-anchor="middle" class="group">比较对象</text>
+  <rect x="55" y="280" width="225" height="65" class="node" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="167" y="307" text-anchor="middle" class="label">baseline</text>
+  <text x="167" y="329" text-anchor="middle" class="small">当前可运行的参照方案</text>
+  <rect x="55" y="370" width="225" height="65" class="node" fill="#e0f2fe" stroke="#0284c7"/>
+  <text x="167" y="397" text-anchor="middle" class="label">candidate</text>
+  <text x="167" y="419" text-anchor="middle" class="small">准备验证的改动方案</text>
+
+  <rect x="315" y="215" width="265" height="270" class="panel" fill="#fefce8" stroke="#fde68a"/>
+  <text x="447" y="250" text-anchor="middle" class="group">实验条件</text>
+  <rect x="335" y="280" width="225" height="65" class="node" fill="#fef3c7" stroke="#d97706"/>
+  <text x="447" y="307" text-anchor="middle" class="label">模型与硬件</text>
+  <text x="447" y="329" text-anchor="middle" class="small">模型、设备、dtype、backend</text>
+  <rect x="335" y="370" width="225" height="65" class="node" fill="#fef9c3" stroke="#ca8a04"/>
+  <text x="447" y="397" text-anchor="middle" class="label">workload</text>
+  <text x="447" y="419" text-anchor="middle" class="small">batch、长度、重复次数</text>
+
+  <rect x="620" y="215" width="265" height="270" class="panel" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="752" y="250" text-anchor="middle" class="group">成功判据</text>
+  <rect x="640" y="280" width="225" height="65" class="node" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="752" y="307" text-anchor="middle" class="label">目标指标</text>
+  <text x="752" y="329" text-anchor="middle" class="small">时间、吞吐、峰值显存</text>
+  <rect x="640" y="370" width="225" height="65" class="node" fill="#ecfccb" stroke="#65a30d"/>
+  <text x="752" y="397" text-anchor="middle" class="label">质量与阈值</text>
+  <text x="752" y="419" text-anchor="middle" class="small">质量底线与可接受收益</text>
+
+  <rect x="920" y="215" width="245" height="270" class="panel" fill="#faf5ff" stroke="#e9d5ff"/>
+  <text x="1042" y="250" text-anchor="middle" class="group">证据记录</text>
+  <rect x="940" y="280" width="205" height="65" class="node" fill="#f3e8ff" stroke="#9333ea"/>
+  <text x="1042" y="307" text-anchor="middle" class="label">结果字段</text>
+  <text x="1042" y="329" text-anchor="middle" class="small">指标、状态、波动范围</text>
+  <rect x="940" y="370" width="205" height="65" class="node" fill="#fae8ff" stroke="#c026d3"/>
+  <text x="1042" y="397" text-anchor="middle" class="label">配置与 trace</text>
+  <text x="1042" y="419" text-anchor="middle" class="small">环境、配置、执行活动</text>
+
+  <path d="M600 170 V190 H167 V215" class="flow"/>
+  <path d="M600 170 V190 H447 V215" class="flow"/>
+  <path d="M600 170 V190 H752 V215" class="flow"/>
+  <path d="M600 170 V190 H1042 V215" class="flow"/>
 </svg>

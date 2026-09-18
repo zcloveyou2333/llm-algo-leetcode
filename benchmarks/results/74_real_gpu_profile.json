@@ -1,0 +1,50 @@
+{
+  "task": "task3_training_memory_optimization",
+  "stage": "real_profiler_trace",
+  "config": {
+    "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+    "batch_size": 1,
+    "seq_len": 768,
+    "dtype": "float32",
+    "strategies": [
+      "baseline",
+      "checkpoint"
+    ],
+    "warmup": 2,
+    "iters": 5
+  },
+  "source_76": "benchmarks/results/76_real_gpu_memory.json",
+  "trace_root": "benchmarks/results/74_profile",
+  "candidates": [
+    {
+      "name": "baseline",
+      "status": "ok",
+      "step_time_ms": 690.375,
+      "samples_per_s": 1.448,
+      "loss": 11.477463,
+      "peak_memory_mb": 9782.73,
+      "peak_reserved_mb": 10750.0,
+      "trace_dir": "benchmarks/results/74_profile/baseline",
+      "top_operators": "-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  \n                                                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg     Self CUDA   Self CUDA %    CUDA total  CUDA time avg       CPU Mem  Self CPU Mem      CUDA Mem  Self CUDA Mem    # of Calls  \n-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  \n                                          ProfilerStep*         5.42%     166.709ms        65.36%        2.011s     502.864ms       0.000us         0.00%        7.649s        1.912s           0 B           0 B           0 B      -9.80 GB             4  \n                              Optimizer.step#AdamW.step         0.27%       8.454ms         2.37%      73.032ms      18.258ms       0.000us         0.00%        6.999s        1.750s           0 B         -16 B           0 B      -7.38 GB             4  \n                                    Command Buffer Full        34.36%        1.057s        34.36%        1.057s     300.326us        6.573s       336.16%        6.573s       1.867ms           0 B           0 B           0 B           0 B          3521  \n                                       cudaLaunchKernel        16.69%     513.675ms        20.27%     623.901ms      50.266us       0.000us         0.00%        6.552s     527.842us           0 B           0 B           0 B           0 B         12412  \n                                          ProfilerStep*         0.00%       0.000us         0.00%       0.000us       0.000us        2.001s       102.35%        2.001s     500.281ms           0 B           0 B           0 B           0 B             4  \n                                   aten::_foreach_lerp_         0.01%     221.818us         0.22%       6.664ms       1.666ms      63.749ms         3.26%        1.500s     375.023ms           0 B           0 B           0 B           0 B             4  \n                                aten::_foreach_addcdiv_         0.02%     659.761us         0.58%      17.849ms       4.462ms      88.746ms         4.54%        1.399s     349.865ms           0 B           0 B           0 B           0 B             4  \n                                    aten::_foreach_mul_         0.01%     412.401us         0.30%       9.324ms       1.165ms      86.498ms         4.42%        1.396s     174.492ms           0 B           0 B           0 B           0 B             8  \n                                               aten::mm         0.44%      13.482ms        15.00%     461.734ms     265.364us        1.093s        55.92%        1.140s     655.408us           0 B           0 B      15.12 GB      15.12 GB          1740  \n                                    aten::_foreach_add_         0.03%     835.161us         0.16%       5.054ms     631.714us      45.744ms         2.34%     998.549ms     124.819ms           0 B           0 B           0 B           0 B             8  \n-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  \nSelf CPU time total: 3.077s\nSelf CUDA time total: 1.955s\n"
+    },
+    {
+      "name": "checkpoint",
+      "status": "ok",
+      "step_time_ms": 825.059,
+      "samples_per_s": 1.212,
+      "loss": 11.477463,
+      "peak_memory_mb": 9450.75,
+      "peak_reserved_mb": 10896.0,
+      "trace_dir": "benchmarks/results/74_profile/checkpoint",
+      "top_operators": "-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  \n                                                   Name    Self CPU %      Self CPU   CPU total %     CPU total  CPU time avg     Self CUDA   Self CUDA %    CUDA total  CUDA time avg       CPU Mem  Self CPU Mem      CUDA Mem  Self CUDA Mem    # of Calls  \n-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  \n                                          ProfilerStep*        10.09%     382.405ms        62.80%        2.381s     595.129ms       0.000us         0.00%        5.481s        1.370s           0 B           0 B           0 B      -6.41 GB             4  \n                              Optimizer.step#AdamW.step         0.26%       9.853ms         2.05%      77.631ms      19.408ms       0.000us         0.00%        4.897s        1.224s           0 B         -16 B           0 B      -7.37 GB             4  \n                                    Command Buffer Full        30.74%        1.165s        30.74%        1.165s     318.754us        4.463s       193.12%        4.463s       1.221ms           0 B           0 B           0 B           0 B          3656  \n                                       cudaLaunchKernel        27.18%        1.030s        29.16%        1.105s      63.869us       0.000us         0.00%        4.451s     257.137us           0 B           0 B           0 B           0 B         17308  \n                                          ProfilerStep*         0.00%       0.000us         0.00%       0.000us       0.000us        2.370s       102.54%        2.370s     592.426ms           0 B           0 B           0 B           0 B             4  \n                                aten::_foreach_addcdiv_         0.01%     490.170us         0.71%      26.771ms       6.693ms      90.964ms         3.94%        1.910s     477.563ms           0 B           0 B           0 B           0 B             4  \n                                               aten::mm         0.74%      28.113ms         3.69%     139.934ms      65.882us        1.270s        54.96%        1.288s     606.385us           0 B           0 B      18.09 GB      18.09 GB          2124  \n                                   aten::_foreach_lerp_         0.01%     259.371us         0.64%      24.097ms       6.024ms      67.571ms         2.92%        1.284s     320.950ms           0 B           0 B           0 B           0 B             4  \n       autograd::engine::evaluate_function: MmBackward0         0.07%       2.466ms        20.20%     765.913ms       1.974ms       0.000us         0.00%        1.002s       2.583ms           0 B           0 B      13.43 GB      -4.42 GB           388  \n                                            MmBackward0         1.73%      65.750ms        20.14%     763.447ms       1.968ms       0.000us         0.00%        1.002s       2.583ms           0 B           0 B      17.86 GB      -4.45 GB           388  \n-------------------------------------------------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  ------------  \nSelf CPU time total: 3.791s\nSelf CUDA time total: 2.311s\n"
+    }
+  ],
+  "profile": {
+    "tool": "torch.profiler",
+    "activities": [
+      "CPU",
+      "CUDA"
+    ],
+    "status": "collected"
+  }
+}

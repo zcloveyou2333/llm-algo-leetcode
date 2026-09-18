@@ -28,7 +28,7 @@
 - [12. Gradient Accumulation | 梯度累积](./12_Gradient_Accumulation.md)
 - [13. End-to-End Fine-Tuning Experiment | 端到端微调实验](./13_End_to_End_Fine_Tuning_Experiment.md)
 - [40. GPTQ and AWQ | GPTQ 与 AWQ](./40_GPTQ_and_AWQ_Weight_Quantization.md)（交叉参考：部署侧权重量化，不是本项目候选）
-
+---
 
 ### Step 1（项目设计）：明确预算问题与实验目的
 本节默认你已经知道 LoRA、NF4 和冻结基座的基本含义；现在要回答的是：在给定显存上限、最低吞吐和质量下限时，应该保留全参数、LoRA 还是 QLoRA。先写下这三个约束，再决定哪些候选值得进入实验。CPU 代码负责预算推演，真实显存与量化 kernel 仍需 GPU 验证。
@@ -479,7 +479,7 @@ if RUN_PROJECT_EXPORT:
 
 ## 相关阅读
 
-完成全参数、LoRA 与 QLoRA 的预算和质量比较后，可以继续阅读 QLoRA 原论文、低比特实现和量化部署项目。
+以下资料按“低比特微调论文 → 开源实现 → 量化部署项目”排列，用于把预算、质量和低比特 kernel 约束连接到真实部署。
 
 - [QLoRA 原论文：Efficient Finetuning of Quantized Language Models](https://arxiv.org/abs/2305.14314)
 - [bitsandbytes 官方仓库](https://github.com/bitsandbytes-foundation/bitsandbytes)

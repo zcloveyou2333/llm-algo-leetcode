@@ -6,15 +6,30 @@
 
 本文负责组织判断框架。具体 Notebook 负责代码和工具操作，项目节负责固定 workload、保存结果和形成结论。
 
+## 这几类页面怎么配合
+
+先从[专题入口](./intro.md)选择 Task，再按需要选择阅读方式：
+
+| 页面 | 适合什么时候打开 | 读完应得到什么 |
+|:---|:---|:---|
+| Task 对应正文 | 第一次学习一个概念，或需要确认术语和测量口径 | 知道要观察什么、如何解释一类证据 |
+| 本页 casebook | 已经拿到一份结果，需要快速判断下一步 | 根据指标、工具和证据等级选择继续取证或做对照 |
+| [深入阅读](./walkthrough.md) | 想把多个 Task 串成一次完整分析 | 看到从问题定义到行动决策的连续过程 |
+| Part00–Part02 Notebook / 项目节 | 需要运行代码或采集真实结果 | 得到可复核的 trace、表格、报告和项目结论 |
+
+正文解释判断方法，casebook 提供查表入口，walkthrough 负责串起认知过程；三者共享同一套字段和 evidence level，不重复承担 Notebook 的实现。
+
 ## 先定义问题和测量口径
 
 “变慢”可能指单步时间、端到端延迟、吞吐下降、峰值显存上升或多卡扩展效率下降。不同指标对应不同测量方法，不能用一个 profiler 数字替代全部结论。
+
+项目报告统一使用以下区分：训练记录 `step_time_ms`，推理请求记录 `latency_ms / TTFT / TPOT`，产出量记录带单位的 `throughput`，显存记录 `peak_memory` 及其来源。`hotspot` 只表示下一步要检查的位置；只有对照实验和回归结果支持时，才升级为瓶颈结论。
 
 | 现象 | 先固定的指标 | 第一条假设 | 下一步 |
 |:---|:---|:---|:---|
 | 训练 step 变慢 | step time、samples/s、tokens/s | 算子热点、输入管线或同步增加 | 先做固定 workload 计时，再看 trace |
 | 推理请求变慢 | TTFT、TPOT、端到端延迟、吞吐 | prefill、decode、排队或 KV Cache 受限 | 分解请求阶段和并发条件 |
-| 显存峰值上升 | allocated、reserved、峰值时刻 | activation、workspace、cache 或碎片 | 看 memory timeline / snapshot |
+| 显存峰值上升 | peak_memory、peak_allocated、peak_reserved | activation、workspace、cache 或碎片 | 看 memory timeline / snapshot，并记录测量区间 |
 | 多卡扩展不佳 | 单卡基线、扩展效率、collective 时间 | 通信等待、负载不均或同步 | 对比通信 trace 和计算区间 |
 
 开始采集前必须记录模型、输入形状、batch、序列长度、并发、warmup、迭代次数、dtype、硬件、软件版本和随机种子。否则 before / after 的差异无法归因。
@@ -23,7 +38,7 @@
 
 | 观察目标 | 首选工具 | 主要证据 | 何时升级 |
 |:---|:---|:---|:---|
-| 总耗时、吞吐和显存 | `time.perf_counter()`、`torch.cuda.Event`、CUDA memory API | 固定 workload 的聚合指标 | 阶段关系无法解释时进入 profiler |
+| 总耗时、吞吐和显存 | `time.perf_counter()`、`torch.cuda.Event`、CUDA memory API | 固定 workload 的聚合指标；训练使用 `step_time_ms`，请求使用 `latency_ms` | 阶段关系无法解释时进入 profiler |
 | 算子热点和训练阶段 | `torch.profiler`、Chrome Trace、TensorBoard | CPU / CUDA 时间、调用次数、shape、memory | 需要 stream、搬运和系统重叠时进入 Nsight Systems |
 | GPU 利用率和进程状态 | `nvidia-smi`、框架指标 | 进程显存、利用率、功耗和温度 | 需要 kernel 级指标时进入 Nsight Compute |
 | CPU-GPU 重叠和同步 | Nsight Systems | stream、launch、同步、搬运和阶段关系 | 需要具体 kernel 访存时进入 Nsight Compute |
@@ -69,6 +84,7 @@
 
 ## 项目分工
 
+- `66–70` 是推理优化路线的项目：66 比较推理性能，67 验证量化部署，68 比较推测解码，69 比较 Prefix Cache，70 比较 Serving 调度；性能分析复用 TTFT、TPOT、E2E、吞吐、峰值显存和证据等级，不替代这些项目的机制解释。
 - `73` 建立训练性能和显存 baseline，固定 workload、环境和重复测量口径；
 - `76` 比较 checkpoint、offload、hybrid 等训练侧显存策略及其时间代价；
 - `75` 根据候选报告做预算敏感性和 accept / tune / reject 决策；

@@ -1,77 +1,74 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="650" viewBox="0 0 1400 650" role="img" aria-labelledby="title desc">
-  <title id="title">66 Step6-8 GPU backend 实验流程</title>
-  <desc id="desc">Step6 完成 vLLM 主线，Step7 可选完成 SGLang 对照，Step8 在相同 workload 下比较两个 backend。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1480" height="470" viewBox="0 0 1480 470" role="img" aria-labelledby="title desc">
+  <title id="title">GPU backend 实验执行流程</title>
+  <desc id="desc">从读取实验配置、解析模型和启动 backend，到运行 benchmark、保存 JSON 和清理服务的执行流程。</desc>
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#52606d"/></marker>
+    <marker id="arrow" markerWidth="11" markerHeight="11" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,4 L0,8 Z" fill="#52606d"/>
+    </marker>
     <style>
-      .title { font: 700 25px sans-serif; fill: #172b4d; }
-      .lane { font: 700 18px sans-serif; fill: #243b53; }
-      .label { font: 700 16px sans-serif; fill: #172b4d; }
+      .title { font: 700 28px sans-serif; fill: #172b4d; }
+      .subtitle { font: 16px sans-serif; fill: #486581; }
+      .label { font: 700 17px sans-serif; fill: #172b4d; }
       .body { font: 15px sans-serif; fill: #334e68; }
       .small { font: 14px sans-serif; fill: #486581; }
       .box { stroke-width: 2; rx: 14; }
-      .arrow { stroke: #52606d; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
-      .dash { stroke: #829ab1; stroke-width: 2.2; stroke-dasharray: 7 6; fill: none; marker-end: url(#arrow); }
+      .arrow { stroke: #52606d; stroke-width: 3; fill: none; marker-end: url(#arrow); }
     </style>
   </defs>
-  <rect width="1400" height="650" fill="#f8fafc"/>
-  <text x="700" y="42" text-anchor="middle" class="title">66 Step6–8：从真实 backend 到跨 backend 比较</text>
 
-  <rect x="35" y="260" width="205" height="125" class="box" fill="#e8f1fb" stroke="#4c86c6"/>
-  <text x="137" y="295" text-anchor="middle" class="label">共同 workload</text>
-  <text x="137" y="325" text-anchor="middle" class="body">模型 · 请求集 · 长度</text>
-  <text x="137" y="353" text-anchor="middle" class="small">dtype · 并发 · 生成长度</text>
-  <text x="137" y="375" text-anchor="middle" class="small">三步使用同一口径</text>
+  <rect width="1480" height="470" fill="#f8fafc"/>
+  <text x="740" y="48" text-anchor="middle" class="title">从实验配置到可复核 JSON</text>
+  <text x="740" y="78" text-anchor="middle" class="subtitle">每组实验沿同一条执行链运行；差异写入元数据，结果独立保存</text>
 
-  <text x="285" y="105" class="lane">Step 6：vLLM 主线（必做）</text>
-  <rect x="275" y="125" width="200" height="125" class="box" fill="#fff4db" stroke="#d99a2b"/>
-  <text x="375" y="160" text-anchor="middle" class="label">环境与 backend 预检</text>
-  <text x="375" y="190" text-anchor="middle" class="body">GPU · CUDA · vLLM</text>
-  <text x="375" y="218" text-anchor="middle" class="small">模型和端口可用</text>
-  <rect x="515" y="125" width="200" height="125" class="box" fill="#fff4db" stroke="#d99a2b"/>
-  <text x="615" y="160" text-anchor="middle" class="label">G0 → G1</text>
-  <text x="615" y="190" text-anchor="middle" class="body">baseline → 单变量对照</text>
-  <text x="615" y="218" text-anchor="middle" class="small">保存 vLLM JSON</text>
+  <rect x="40" y="145" width="170" height="170" class="box" fill="#e8f1fb" stroke="#4c86c6"/>
+  <text x="125" y="185" text-anchor="middle" class="label">读取配置</text>
+  <text x="125" y="222" text-anchor="middle" class="body">模型 · dtype</text>
+  <text x="125" y="250" text-anchor="middle" class="body">workload · 分组</text>
+  <text x="125" y="285" text-anchor="middle" class="small">固定实验契约</text>
 
-  <text x="285" y="315" class="lane">Step 7：SGLang 对照（可选）</text>
-  <rect x="275" y="335" width="200" height="125" class="box" fill="#e8f5ee" stroke="#4f9d69"/>
-  <text x="375" y="370" text-anchor="middle" class="label">确认 SGLang 环境</text>
-  <text x="375" y="400" text-anchor="middle" class="body">填写已验证命令</text>
-  <text x="375" y="428" text-anchor="middle" class="small">独立启动 backend</text>
-  <rect x="515" y="335" width="200" height="125" class="box" fill="#e8f5ee" stroke="#4f9d69"/>
-  <text x="615" y="370" text-anchor="middle" class="label">复用同一 benchmark</text>
-  <text x="615" y="400" text-anchor="middle" class="body">相同 workload 运行</text>
-  <text x="615" y="428" text-anchor="middle" class="small">保存 SGLang JSON</text>
+  <rect x="245" y="145" width="170" height="170" class="box" fill="#e8f1fb" stroke="#4c86c6"/>
+  <text x="330" y="185" text-anchor="middle" class="label">解析模型</text>
+  <text x="330" y="222" text-anchor="middle" class="body">定位本地缓存</text>
+  <text x="330" y="250" text-anchor="middle" class="body">确认模型路径</text>
+  <text x="330" y="285" text-anchor="middle" class="small">避免重复下载</text>
 
-  <text x="285" y="525" class="lane">Step 8：跨 backend 比较（可选）</text>
-  <rect x="275" y="545" width="200" height="80" class="box" fill="#f0eafa" stroke="#8561a8"/>
-  <text x="375" y="578" text-anchor="middle" class="label">对齐比较条件</text>
-  <text x="375" y="604" text-anchor="middle" class="small">模型 · GPU · dtype · 并发</text>
-  <rect x="515" y="545" width="200" height="80" class="box" fill="#f0eafa" stroke="#8561a8"/>
-  <text x="615" y="578" text-anchor="middle" class="label">比较并解释</text>
-  <text x="615" y="604" text-anchor="middle" class="small">指标差异 → 项目结论</text>
+  <rect x="450" y="145" width="170" height="170" class="box" fill="#fff4db" stroke="#d99a2b"/>
+  <text x="535" y="185" text-anchor="middle" class="label">启动 backend</text>
+  <text x="535" y="222" text-anchor="middle" class="body">选择端口</text>
+  <text x="535" y="250" text-anchor="middle" class="body">启动服务进程</text>
+  <text x="535" y="285" text-anchor="middle" class="small">保留启动日志</text>
 
-  <path d="M240 300 C255 300 255 188 275 188" class="arrow"/>
-  <path d="M240 325 C255 325 255 398 275 398" class="arrow"/>
-  <path d="M240 350 C255 350 255 585 275 585" class="dash"/>
-  <path d="M475 188 H515" class="arrow"/>
-  <path d="M475 398 H515" class="arrow"/>
-  <path d="M715 188 C820 188 820 285 900 285" class="dash"/>
-  <path d="M715 398 C820 398 820 335 900 335" class="dash"/>
-  <path d="M715 585 H900" class="arrow"/>
+  <rect x="655" y="145" width="170" height="170" class="box" fill="#fff4db" stroke="#d99a2b"/>
+  <text x="740" y="185" text-anchor="middle" class="label">服务就绪</text>
+  <text x="740" y="222" text-anchor="middle" class="body">等待 API 可访问</text>
+  <text x="740" y="250" text-anchor="middle" class="body">确认模型已加载</text>
+  <text x="740" y="285" text-anchor="middle" class="small">失败时停止流程</text>
 
-  <rect x="900" y="240" width="220" height="145" class="box" fill="#f7f9fc" stroke="#829ab1"/>
-  <text x="1010" y="278" text-anchor="middle" class="label">统一结果表</text>
-  <text x="1010" y="308" text-anchor="middle" class="body">TTFT · TPOT · E2E</text>
-  <text x="1010" y="336" text-anchor="middle" class="body">吞吐 · 显存 · 成功率</text>
-  <text x="1010" y="364" text-anchor="middle" class="small">保留 backend 和版本</text>
-  <path d="M1120 312 H1170" class="arrow"/>
+  <rect x="860" y="145" width="170" height="170" class="box" fill="#e8f5ee" stroke="#4f9d69"/>
+  <text x="945" y="185" text-anchor="middle" class="label">运行 benchmark</text>
+  <text x="945" y="222" text-anchor="middle" class="body">warmup</text>
+  <text x="945" y="250" text-anchor="middle" class="body">正式请求与计时</text>
+  <text x="945" y="285" text-anchor="middle" class="small">采集统一指标</text>
 
-  <rect x="1170" y="240" width="190" height="145" class="box" fill="#fdecec" stroke="#c05656"/>
-  <text x="1265" y="278" text-anchor="middle" class="label">最终结论</text>
-  <text x="1265" y="308" text-anchor="middle" class="body">适合什么 workload</text>
-  <text x="1265" y="336" text-anchor="middle" class="small">不能归因于单一机制</text>
-  <text x="1265" y="364" text-anchor="middle" class="small">accept / tune / reject</text>
+  <rect x="1065" y="145" width="170" height="170" class="box" fill="#e8f5ee" stroke="#4f9d69"/>
+  <text x="1150" y="185" text-anchor="middle" class="label">补充记录</text>
+  <text x="1150" y="222" text-anchor="middle" class="body">backend · dtype</text>
+  <text x="1150" y="250" text-anchor="middle" class="body">分组 · 证据等级</text>
+  <text x="1150" y="285" text-anchor="middle" class="small">保留可追溯条件</text>
 
-  <text x="700" y="645" text-anchor="middle" class="small">先完成 Step6 vLLM 基线；Step7 复用相同 workload；Step8 只比较条件一致的结果。</text>
+  <rect x="1270" y="145" width="170" height="170" class="box" fill="#f0eafa" stroke="#8561a8"/>
+  <text x="1355" y="185" text-anchor="middle" class="label">保存与清理</text>
+  <text x="1355" y="222" text-anchor="middle" class="body">写入独立 JSON</text>
+  <text x="1355" y="250" text-anchor="middle" class="body">检查字段与异常</text>
+  <text x="1355" y="285" text-anchor="middle" class="small">停止服务并释放资源</text>
+
+  <path d="M210 230 H245" class="arrow"/>
+  <path d="M415 230 H450" class="arrow"/>
+  <path d="M620 230 H655" class="arrow"/>
+  <path d="M825 230 H860" class="arrow"/>
+  <path d="M1030 230 H1065" class="arrow"/>
+  <path d="M1235 230 H1270" class="arrow"/>
+
+  <text x="740" y="385" text-anchor="middle" class="subtitle">输入条件在前置小节固定；本流程只负责执行、记录和释放资源</text>
+  <text x="740" y="418" text-anchor="middle" class="small">单组结果完整保存后，才能进入后续指标解释与 backend 比较</text>
 </svg>

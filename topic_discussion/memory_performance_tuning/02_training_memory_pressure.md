@@ -2,7 +2,7 @@
 
 ## 页面目标
 
-本节把“训练一上大 batch 就 OOM”拆成可测量的问题：是 activation、梯度、optimizer state 还是输入规模在抬高峰值？学习者需要知道每个对象能通过什么方式改变，以及代价会转移到哪里。
+本节是 **Task0–2 的训练侧机制入口**：先解释状态为什么在计算图中驻留，再把“训练一上大 batch 就 OOM”拆成可测量的问题，最后为 Task2 的策略比较准备对象和代价语言。
 
 ## 核心机制
 
@@ -16,6 +16,18 @@
 | effective batch | 多个 micro-step 的样本总量 | micro-batch、accumulation steps |
 
 因此，缩小 batch 只是一个控制旋钮；它可能降低 activation 峰值，却同时改变吞吐和训练节奏。真正的策略选择要先确认主因，再判断是否需要 accumulation、checkpoint、offload、sharding 或量化。
+
+先用下面这张生命周期表建立 Task0–2 共用的观察语言。对象的“大小”只能说明容量压力，只有把产生、驻留和释放阶段放回时间线，才能解释峰值为什么出现在某个位置。
+
+| 对象 | 什么时候产生 | 什么时候驻留 | 什么时候释放或复用 | 首要观察量 |
+|:---|:---|:---|:---|:---|
+| 参数 | 模型加载时 | 整个训练或推理过程 | 进程结束或模型卸载 | 参数量、dtype、加载峰值 |
+| activation | forward 计算过程中 | 等待 backward 使用 | 对应反向节点完成后 | saved tensors、阶段峰值 |
+| 梯度 | backward 计算过程中 | 直到 optimizer step 或下一轮清零 | `zero_grad` 或梯度覆盖 | 梯度 dtype、累积方式 |
+| optimizer state | 第一次或后续参数更新时 | 训练期间持续驻留 | 优化器释放或参数移除 | state 大小、更新后峰值 |
+| 临时 workspace | 算子或 backend 执行时 | 当前 kernel / 阶段 | 算子完成后回收或进入 allocator cache | allocated、reserved、trace |
+
+这张表解释了为什么 Task0 先学习生命周期，Task1 再把对象放入账本，Task2 才选择重算、累积或搬运。推理侧的 KV Cache 也遵循同一语言，但它按请求和 token 增长，在 Task4 单独展开。
 
 ![训练显存压力：从输入规模到策略选择](../../docs/public/topic_discussion/memory_performance_tuning/training_pressure_diagnosis.svg)
 

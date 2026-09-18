@@ -26,7 +26,7 @@
 - [13. End-to-End Fine-Tuning Experiment | 端到端微调实验](./13_End_to_End_Fine_Tuning_Experiment.md)
 - [30. Long Context Fine-Tuning | 长上下文微调](./30_Long_Context_Fine_Tuning.md)
 - [32. Data Engineering for SFT | SFT 数据工程](./32_Data_Engineering_for_SFT.md)
-
+---
 
 ### Step 1（项目设计）：明确数据准入问题
 本节面向已经理解 SFT 样本、监督范围和基本训练闭环的学习者。你不需要先训练模型，但需要能看懂 `prompt / response`、`messages` 和评测样例。这里要回答的是：这批数据现在能不能交给训练项目？
@@ -419,7 +419,9 @@ if RUN_PROJECT_EXPORT:
 
 ## 相关阅读
 
-完成字段、模板、重复和长度质量检查后，可以继续阅读数据集工具和正式微调项目，观察样本如何进入训练闭环。
+以下资料按“数据质量工具 → 数据集实现 → 微调项目”排列，用于把字段、模板、重复和长度检查连接到训练数据闭环。
+
+- [LIMA 论文：少量高质量数据的监督微调](https://arxiv.org/abs/2305.11206)
 
 - [Hugging Face Datasets 官方文档](https://huggingface.co/docs/datasets)
 - [Hugging Face Datasets 官方仓库](https://github.com/huggingface/datasets)

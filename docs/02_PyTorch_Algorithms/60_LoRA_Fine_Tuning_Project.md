@@ -27,7 +27,7 @@
 - [10. LoRA Tutorial | LoRA 教程](./10_LoRA_Tutorial.md)
 - [12. Gradient Accumulation | 梯度累积](./12_Gradient_Accumulation.md)
 - [13. End-to-End Fine-Tuning Experiment | 端到端微调实验](./13_End_to_End_Fine_Tuning_Experiment.md)
-
+---
 
 ### Step 1（项目设计与运行入口）：明确实验目标与对照
 

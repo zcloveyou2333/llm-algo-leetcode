@@ -2,7 +2,7 @@
 
 ## 页面目标
 
-本节回答：为什么上下文和并发增加后，KV Cache 会成为推理显存边界？分页、前缀复用、缓存调度和 KV Cache 量化分别改变了什么？
+本节对应 **Task4：推理侧 KV Cache 与容量**。这里回答为什么上下文和并发增加后 KV Cache 会成为推理显存边界，以及分页、前缀复用、缓存组织和 KV Cache 量化分别改变了什么。
 
 ## 核心机制
 
@@ -16,6 +16,24 @@ KV Cache 保存历史 token 对应的键和值，使 decode 不必重复计算�
 | KV Cache 量化 | cache 的数值表示 | cache 占用、误差和 backend 支持 | [41 KV Cache 量化](../../02_PyTorch_Algorithms/41_FP8_and_KV_Cache_Quantization.md)；完整量化路线见 Task5 |
 
 这里关注的是“缓存如何在有限显存中驻留和增长”，不是请求路由、扩缩容或版本治理。服务调度的完整问题回到推理优化路线；同一个 66 项目在该路线关注延迟和吞吐，在本专题还要记录 cache policy、命中率、峰值显存和并发容量。
+
+容量估算先使用一个统一的近似式：
+
+```text
+KV bytes / request
+≈ 2 × layers × kv_heads × head_dim × tokens × dtype_bytes
+```
+
+其中 `2` 表示 K 和 V 两份状态，`tokens` 包含当前请求实际保留的上下文；并发请求数、block 元数据、对齐浪费和 backend workspace 还会继续增加实际占用。这个公式用于提出容量假设，不等于某个 backend 的最终峰值。
+
+Prefill 和 Decode 对 Cache 的压力也不同：Prefill 一次写入较长的历史片段，Decode 逐 token 追加并反复读取已有 Cache。分页主要改变 block 的分配和回收方式，Prefix Cache 改变重复前缀是否可以复用，eviction 则决定容量不足时保留哪些状态。它们都可能降低浪费，但不保证同时改善 TTFT、TPOT 和吞吐。
+
+| 机制 | 主要改变 | 需要记录的证据 | 可能转移的代价 |
+|:---|:---|:---|:---|
+| 连续 Cache | 直接按请求保留 K/V | 容量增长、碎片、OOM | 预留浪费、扩展困难 |
+| 分页 Cache | block 分配、回收和复用 | block 利用率、碎片、eviction | 管理开销、访问间接层 |
+| Prefix Cache | 重复前缀的状态复用 | 命中率、复用 token、失效原因 | 失效管理、额外元数据 |
+| Cache 量化 | 每个 K/V 元素的表示宽度 | dtype、误差、质量、backend kernel | 数值误差、转换或 kernel 代价 |
 
 ![KV Cache：增长、组织与预算](../../public/topic_discussion/memory_performance_tuning/kv_cache_budget.svg)
 

@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760">
+<defs>
+  <marker id="arrow" markerWidth="11" markerHeight="11" refX="9" refY="5.5" orient="auto"><path d="M0 0 L11 5.5 L0 11 Z" fill="#486581"/></marker>
+</defs>
+<style>
+  .title{font:700 30px sans-serif;fill:#17324d}.sub{font:16px sans-serif;fill:#526581}
+  .head{font:700 18px sans-serif;fill:#17324d}.body{font:15px sans-serif;fill:#334e68}.small{font:14px sans-serif;fill:#486581}
+  .card{stroke-width:2;rx:18}.flow{stroke:#486581;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+</style>
+<rect width="1400" height="760" fill="#fbfcfe"/>
+<text x="700" y="48" text-anchor="middle" class="title">量化知识地图：对象如何连接到误差与部署</text>
+<text x="700" y="78" text-anchor="middle" class="sub">同样的低比特表示，因压缩对象和执行位置不同，会产生不同的收益、风险和验证方式。</text>
+
+<rect x="70" y="145" width="280" height="150" class="card" fill="#f3edff" stroke="#9b8ac4"/>
+<text x="210" y="183" text-anchor="middle" class="head">压缩对象</text>
+<text x="210" y="216" text-anchor="middle" class="body">权重</text>
+<text x="210" y="244" text-anchor="middle" class="body">激活 / 计算张量</text>
+<text x="210" y="272" text-anchor="middle" class="body">KV Cache</text>
+
+<rect x="425" y="145" width="280" height="150" class="card" fill="#fff4d6" stroke="#e0b34f"/>
+<text x="565" y="183" text-anchor="middle" class="head">成本变化</text>
+<text x="565" y="216" text-anchor="middle" class="body">常驻显存与带宽</text>
+<text x="565" y="244" text-anchor="middle" class="body">运行时计算与工作区</text>
+<text x="565" y="272" text-anchor="middle" class="body">上下文与并发容量</text>
+
+<rect x="780" y="145" width="280" height="150" class="card" fill="#e8f5ee" stroke="#76b893"/>
+<text x="920" y="183" text-anchor="middle" class="head">误差与处理时机</text>
+<text x="920" y="216" text-anchor="middle" class="body">PTQ：训练后校准</text>
+<text x="920" y="244" text-anchor="middle" class="body">QAT / QLoRA：训练适配</text>
+<text x="920" y="272" text-anchor="middle" class="body">运行时：FP8 / KV Cache</text>
+
+<rect x="1135" y="145" width="195" height="150" class="card" fill="#e6f0ff" stroke="#8fb3d8"/>
+<text x="1232" y="183" text-anchor="middle" class="head">方法与格式</text>
+<text x="1232" y="216" text-anchor="middle" class="body">GPTQ</text>
+<text x="1232" y="244" text-anchor="middle" class="body">AWQ</text>
+<text x="1232" y="272" text-anchor="middle" class="body">GGUF / FP8</text>
+
+<path d="M350 220 H425" class="flow"/><path d="M705 220 H780" class="flow"/><path d="M1060 220 H1135" class="flow"/>
+
+<rect x="180" y="430" width="300" height="150" class="card" fill="#fffaf0" stroke="#c49a3a"/>
+<text x="330" y="468" text-anchor="middle" class="head">校准与质量</text>
+<text x="330" y="502" text-anchor="middle" class="body">代表性数据</text>
+<text x="330" y="530" text-anchor="middle" class="body">数值误差与任务质量</text>
+<text x="330" y="558" text-anchor="middle" class="small">长上下文、结构化输出、工具调用</text>
+
+<rect x="550" y="430" width="300" height="150" class="card" fill="#f2fbf5" stroke="#76b893"/>
+<text x="700" y="468" text-anchor="middle" class="head">执行路径</text>
+<text x="700" y="502" text-anchor="middle" class="body">loader · backend · kernel</text>
+<text x="700" y="530" text-anchor="middle" class="body">硬件 dtype 支持</text>
+<text x="700" y="558" text-anchor="middle" class="small">格式可加载不等于路径有效</text>
+
+<rect x="920" y="430" width="300" height="150" class="card" fill="#fce8e6" stroke="#d98b87"/>
+<text x="1070" y="468" text-anchor="middle" class="head">服务证据</text>
+<text x="1070" y="502" text-anchor="middle" class="body">显存 · TTFT · TPOT</text>
+<text x="1070" y="530" text-anchor="middle" class="body">吞吐 · P99 · 并发</text>
+<text x="1070" y="558" text-anchor="middle" class="small">同 workload 下比较 baseline / candidate</text>
+
+<path d="M920 295 V360 H330 V430" class="flow"/>
+<path d="M1232 295 V430" class="flow"/>
+<path d="M700 295 V430" class="flow"/>
+<path d="M480 505 H550" class="flow"/><path d="M850 505 H920" class="flow"/>
+
+<rect x="460" y="650" width="480" height="62" class="card" fill="#e9f2f9" stroke="#829ab1"/>
+<text x="700" y="677" text-anchor="middle" class="head">工程决策</text>
+<text x="700" y="701" text-anchor="middle" class="small">accept · tune · reject：收益必须同时满足质量与部署约束</text>
+<path d="M1070 580 V620 H700 V650" class="flow"/>
+</svg>

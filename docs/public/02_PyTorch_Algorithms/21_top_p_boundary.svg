@@ -1,37 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 560" role="img" aria-labelledby="title desc">
-  <title id="title">Top-p 边界保留</title>
-  <desc id="desc">按概率从高到低累加，保留首次达到阈值的边界 token，并屏蔽后续 token。</desc>
-  <style>
-    .title { font: 700 28px "Noto Sans SC", "Microsoft YaHei", sans-serif; fill: #0f172a; }
-    .label { font: 700 20px "Noto Sans SC", "Microsoft YaHei", sans-serif; fill: #111827; }
-    .small { font: 500 17px "Noto Sans SC", "Microsoft YaHei", sans-serif; fill: #334155; }
-    .token { font: 700 18px "Noto Sans SC", "Microsoft YaHei", sans-serif; fill: #0f172a; }
-  </style>
-  <rect width="1400" height="560" fill="#f8fafc"/>
-  <text x="64" y="58" class="title">Top-p：保留累计概率达到阈值的最小集合</text>
-  <text x="64" y="94" class="small">示例 p = 0.85；边界 token 必须保留，后续 token 才会被屏蔽。</text>
-
-  <text x="70" y="160" class="label">按概率排序</text>
-  <g transform="translate(70,190)">
-    <rect x="0" y="0" width="180" height="100" rx="14" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-    <text x="90" y="42" text-anchor="middle" class="token">t1：0.50</text>
-    <text x="90" y="72" text-anchor="middle" class="small">累计 0.50</text>
-    <rect x="200" y="0" width="180" height="100" rx="14" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
-    <text x="290" y="42" text-anchor="middle" class="token">t2：0.30</text>
-    <text x="290" y="72" text-anchor="middle" class="small">累计 0.80</text>
-    <rect x="400" y="0" width="180" height="100" rx="14" fill="#fef3c7" stroke="#d97706" stroke-width="3"/>
-    <text x="490" y="42" text-anchor="middle" class="token">t3：0.10</text>
-    <text x="490" y="72" text-anchor="middle" class="small">累计 0.90</text>
-    <rect x="600" y="0" width="180" height="100" rx="14" fill="#e5e7eb" stroke="#9ca3af" stroke-width="2"/>
-    <text x="690" y="42" text-anchor="middle" class="token">t4：0.05</text>
-    <text x="690" y="72" text-anchor="middle" class="small">被屏蔽</text>
-    <rect x="800" y="0" width="180" height="100" rx="14" fill="#e5e7eb" stroke="#9ca3af" stroke-width="2"/>
-    <text x="890" y="42" text-anchor="middle" class="token">t5：0.05</text>
-    <text x="890" y="72" text-anchor="middle" class="small">被屏蔽</text>
-  </g>
-  <path d="M 650 300 V 350" stroke="#d97706" stroke-width="3" stroke-dasharray="8 6"/>
-  <text x="650" y="382" text-anchor="middle" class="label" fill="#92400e">首次达到 p = 0.85 的位置</text>
-  <text x="650" y="414" text-anchor="middle" class="small">保留 t1、t2、t3，再重新归一化概率</text>
-  <rect x="100" y="460" width="1200" height="52" rx="14" fill="#fff7ed" stroke="#fb923c"/>
-  <text x="700" y="494" text-anchor="middle" class="small">重点：Top-p 不是简单删除累计概率超过阈值的 token，而是保留达到阈值的边界 token。</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+<title id="title">Top-p 边界保留</title><desc id="desc">按概率从高到低累加，保留累计概率首次达到阈值的边界 token，再屏蔽后续 token 并重新归一化。</desc>
+<defs><style>text{font-family:"Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif;fill:#172033}.title{font-size:28px;font-weight:700}.sub{font-size:15px;fill:#475569}.label{font-size:17px;font-weight:700}.small{font-size:13px;fill:#475569}.token{font-size:16px;font-weight:700}.line{stroke:#64748b;stroke-width:2.5;fill:none}.arrow{fill:#64748b}</style></defs>
+<rect width="1200" height="500" fill="#f8fafc"/><text x="600" y="42" text-anchor="middle" class="title">Top-p：累计概率决定候选边界</text><text x="600" y="70" text-anchor="middle" class="sub">示例 p = 0.85：首次跨过阈值的 token 必须保留</text>
+<text x="70" y="130" class="label">按概率从高到低排列</text>
+<g transform="translate(70,155)"><rect x="0" y="0" width="180" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="90" y="37" text-anchor="middle" class="token">t1：0.50</text><text x="90" y="66" text-anchor="middle" class="small">累计 0.50</text><rect x="200" y="0" width="180" height="90" rx="14" fill="#dbeafe" stroke="#3b82f6" stroke-width="2"/><text x="290" y="37" text-anchor="middle" class="token">t2：0.30</text><text x="290" y="66" text-anchor="middle" class="small">累计 0.80</text><rect x="400" y="0" width="180" height="90" rx="14" fill="#fef3c7" stroke="#d97706" stroke-width="3"/><text x="490" y="37" text-anchor="middle" class="token">t3：0.10</text><text x="490" y="66" text-anchor="middle" class="small">累计 0.90</text><rect x="600" y="0" width="180" height="90" rx="14" fill="#e5e7eb" stroke="#9ca3af" stroke-width="2"/><text x="690" y="37" text-anchor="middle" class="token">t4：0.05</text><text x="690" y="66" text-anchor="middle" class="small">屏蔽</text><rect x="800" y="0" width="180" height="90" rx="14" fill="#e5e7eb" stroke="#9ca3af" stroke-width="2"/><text x="890" y="37" text-anchor="middle" class="token">t5：0.05</text><text x="890" y="66" text-anchor="middle" class="small">屏蔽</text></g>
+<path d="M560 245V285" stroke="#d97706" stroke-width="3" stroke-dasharray="8 6"/><text x="560" y="310" text-anchor="middle" class="label">p = 0.85 的边界</text>
+<path d="M560 325V365" class="line"/><polygon points="560,371 554,359 566,359" class="arrow"/>
+<text x="600" y="400" text-anchor="middle" class="label">保留 t1、t2、t3 → 屏蔽后续 token → Softmax 重整化</text>
 </svg>

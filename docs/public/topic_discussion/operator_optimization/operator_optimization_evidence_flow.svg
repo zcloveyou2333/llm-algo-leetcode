@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="540" viewBox="0 0 1200 540">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0,0 L10,5 L0,10 Z" fill="#486581"/>
+    </marker>
+    <style>
+      .title{font:700 29px sans-serif;fill:#17324d}.subtitle{font:16px sans-serif;fill:#486581}
+      .head{font:700 18px sans-serif;fill:#17324d}.text{font:15px sans-serif;fill:#334e68}
+      .small{font:14px sans-serif;fill:#486581}.box{stroke:#829ab1;stroke-width:2;rx:14}
+      .line{stroke:#486581;stroke-width:3;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="540" fill="#f7fafc"/>
+  <text x="600" y="42" text-anchor="middle" class="title">算子优化证据流：从候选实现到项目决策</text>
+  <text x="600" y="70" text-anchor="middle" class="subtitle">每一步都留下可复查条件，局部变快不自动等于系统收益</text>
+
+  <rect x="55" y="145" width="180" height="155" fill="#e6f6f5" class="box"/>
+  <text x="145" y="185" text-anchor="middle" class="head">参考实现</text>
+  <text x="145" y="225" text-anchor="middle" class="text">输入契约</text>
+  <text x="145" y="252" text-anchor="middle" class="text">边界与误差</text>
+  <text x="145" y="279" text-anchor="middle" class="small">CPU / PyTorch</text>
+
+  <path d="M235 222 H270" class="line"/>
+  <rect x="270" y="145" width="180" height="155" fill="#fff4e6" class="box"/>
+  <text x="360" y="185" text-anchor="middle" class="head">候选 Kernel</text>
+  <text x="360" y="225" text-anchor="middle" class="text">tile / layout</text>
+  <text x="360" y="252" text-anchor="middle" class="text">load / store</text>
+  <text x="360" y="279" text-anchor="middle" class="small">编译目标</text>
+
+  <path d="M450 222 H485" class="line"/>
+  <rect x="485" y="145" width="180" height="155" fill="#fff4e6" class="box"/>
+  <text x="575" y="185" text-anchor="middle" class="head">数值对齐</text>
+  <text x="575" y="225" text-anchor="middle" class="text">shape / dtype</text>
+  <text x="575" y="252" text-anchor="middle" class="text">误差阈值</text>
+  <text x="575" y="279" text-anchor="middle" class="small">不通过则回退</text>
+
+  <path d="M665 222 H700" class="line"/>
+  <rect x="700" y="145" width="180" height="155" fill="#eef2ff" class="box"/>
+  <text x="790" y="185" text-anchor="middle" class="head">GPU 对照</text>
+  <text x="790" y="225" text-anchor="middle" class="text">warmup / repeats</text>
+  <text x="790" y="252" text-anchor="middle" class="text">kernel / trace</text>
+  <text x="790" y="279" text-anchor="middle" class="small">固定 shape</text>
+
+  <path d="M880 222 H915" class="line"/>
+  <rect x="915" y="145" width="230" height="155" fill="#f0f4f8" class="box"/>
+  <text x="1030" y="185" text-anchor="middle" class="head">Workload 验证</text>
+  <text x="1030" y="225" text-anchor="middle" class="text">Block / 模型</text>
+  <text x="1030" y="252" text-anchor="middle" class="text">延迟 · 吞吐 · 显存</text>
+  <text x="1030" y="279" text-anchor="middle" class="small">固定输入分布</text>
+
+  <path d="M1030 300 V365 H790 V395" class="line"/>
+  <rect x="620" y="395" width="340" height="90" fill="#e6f6f5" class="box"/>
+  <text x="790" y="432" text-anchor="middle" class="head">条件化项目结论</text>
+  <text x="790" y="460" text-anchor="middle" class="text">accept / tune / reject + 适用范围</text>
+
+  <text x="600" y="530" text-anchor="middle" class="small">证据等级从 correctness → microbenchmark → workload benchmark 逐步提高</text>
+</svg>

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560" role="img" aria-labelledby="title desc">
+  <title id="title">Profiling 时间证据图</title><desc id="desc">从一次运行经过主机调用、设备执行和同步搬运，形成可复查的阶段热点证据。</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f8fafc"/><stop offset="1" stop-color="#eff6ff"/></linearGradient>
+    <style>text{font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;fill:#172033}.title{font-size:29px;font-weight:700}.sub{font-size:15px;fill:#475569}.label{font-size:18px;font-weight:700}.small{font-size:13px;fill:#475569}.node{stroke-width:2.5;rx:16;ry:16}.panel{stroke-width:2;rx:18;ry:18}.flow{stroke:#52606d;stroke-width:3;stroke-linecap:round;fill:none}.branch{stroke:#94a3b8;stroke-width:3;fill:none}</style>
+  </defs>
+  <rect width="1400" height="560" fill="url(#bg)"/>
+  <text x="58" y="55" class="title">Profiling：把一次运行拆成时间证据</text>
+  <text x="58" y="85" class="sub">先看调用如何进入设备，再区分计算、等待和搬运，最后定位真正占时的阶段。</text>
+
+  <rect x="60" y="135" width="250" height="100" class="node" fill="#e0f2fe" stroke="#38bdf8"/><text x="185" y="175" text-anchor="middle" class="label">一次运行</text><text x="185" y="207" text-anchor="middle" class="small">固定输入与测量条件</text>
+  <rect x="380" y="135" width="250" height="100" class="node" fill="#dcfce7" stroke="#4ade80"/><text x="505" y="175" text-anchor="middle" class="label">主机调用</text><text x="505" y="207" text-anchor="middle" class="small">排队、调用与等待</text>
+  <rect x="700" y="135" width="250" height="100" class="node" fill="#fef3c7" stroke="#f59e0b"/><text x="825" y="175" text-anchor="middle" class="label">设备执行</text><text x="825" y="207" text-anchor="middle" class="small">Kernel 与阶段耗时</text>
+  <rect x="1020" y="135" width="320" height="100" class="node" fill="#ede9fe" stroke="#8b5cf6"/><text x="1180" y="175" text-anchor="middle" class="label">同步与搬运</text><text x="1180" y="207" text-anchor="middle" class="small">复制、同步与收尾</text>
+  <line x1="310" y1="185" x2="380" y2="185" class="flow"/><path d="M372 177L380 185L372 193Z" fill="#52606d"/>
+  <line x1="630" y1="185" x2="700" y2="185" class="flow"/><path d="M692 177L700 185L692 193Z" fill="#52606d"/>
+  <line x1="950" y1="185" x2="1020" y2="185" class="flow"/><path d="M1012 177L1020 185L1012 193Z" fill="#52606d"/>
+
+  <rect x="355" y="350" width="300" height="120" class="panel" fill="#ffffff" stroke="#93c5fd"/><text x="505" y="392" text-anchor="middle" class="label">主机时间</text><text x="505" y="422" text-anchor="middle" class="small">调用与排队的 CPU 时间</text><text x="505" y="447" text-anchor="middle" class="small">回答“是否卡在调度”</text>
+  <rect x="675" y="350" width="300" height="120" class="panel" fill="#ffffff" stroke="#86efac"/><text x="825" y="392" text-anchor="middle" class="label">设备时间</text><text x="825" y="422" text-anchor="middle" class="small">Kernel 与阶段耗时</text><text x="825" y="447" text-anchor="middle" class="small">回答“时间花在哪里”</text>
+  <rect x="1030" y="350" width="300" height="120" class="panel" fill="#ffffff" stroke="#c4b5fd"/><text x="1180" y="392" text-anchor="middle" class="label">Trace 证据</text><text x="1180" y="422" text-anchor="middle" class="small">顺序、等待与重叠</text><text x="1180" y="447" text-anchor="middle" class="small">支持复查阶段热点</text>
+  <line x1="505" y1="235" x2="505" y2="350" class="flow"/><path d="M497 342L505 350L513 342Z" fill="#52606d"/>
+  <line x1="825" y1="235" x2="825" y2="350" class="flow"/><path d="M817 342L825 350L833 342Z" fill="#52606d"/>
+  <line x1="1180" y1="235" x2="1180" y2="350" class="flow"/><path d="M1172 342L1180 350L1188 342Z" fill="#52606d"/>
+</svg>

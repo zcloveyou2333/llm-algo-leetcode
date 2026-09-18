@@ -18,6 +18,7 @@
   <a href="./topic_discussion/profiling/intro.md">性能分析 / Performance Analysis</a> ·
   <a href="./topic_discussion/communication_parallel/intro.md">通信与并行 / Communication and Parallelism</a> ·
   <a href="./topic_discussion/multimodal/intro.md">多模态 / Multimodal（建设中 / In progress）</a> ·
+  <a href="./topic_discussion/deployment_heterogeneous/intro.md">部署与异构系统 / Deployment and Heterogeneous Systems（建设中 / In progress）</a> ·
   <a href="./topic_discussion/intro.md">查看全部专题 / All topics</a>
 </p>
 
@@ -87,6 +88,7 @@
 | 横切支撑专题 | [`通信与并行（Communication and Parallelism）`](./topic_discussion/communication_parallel/intro.md) | NCCL、AllReduce、ZeRO、PP、TP 和并行验证。 | 想理解多卡训练和通信边界的学习者。 | ✅ 持续优化 |
 | 横切支撑专题 | [`性能分析（Performance Analysis）`](./topic_discussion/profiling/intro.md) | 性能取证、trace 阅读、回归验证和行动决策。 | 想系统补性能意识与排障方法的学习者。 | ✅ 持续优化 |
 | 横切支撑专题（建设中） | [`多模态（Multimodal）`](./topic_discussion/multimodal/intro.md) | 以多模态推理为主线，覆盖视觉表示、对齐、视觉 token、推理成本和任务评测；训练作为共享前置。 | 想进入视觉语言模型、文档理解或图文推理的学习者。 | 🛠 建设中 |
+| 横切支撑专题（建设中） | [`部署与异构系统（Deployment and Heterogeneous Systems）`](./topic_discussion/deployment_heterogeneous/intro.md) | 模型产物、推理 backend、CPU/GPU/NPU 协同、资源编排和部署验证。 | 想理解模型如何从文件进入可交付服务的学习者。 | 🛠 建设中 |
 | 基础支撑专题 | [`监督微调与训练工程（Supervised Fine-Tuning and Training Engineering）`](./topic_discussion/fine_tuning_training/intro.md) | SFT、LoRA、训练控制、数据工程和项目准备。 | 想补齐监督微调与训练工程基础的学习者。 | ✅ 持续优化 |
 | 基础支撑专题 | [`反向传播与训练机制（Backpropagation and Training Mechanics）`](./topic_discussion/backpropagation_training_mechanism/intro.md) | autograd、backward、checkpointing、offload 与训练节奏。 | 想补训练机制底座的学习者。 | ✅ 持续优化 |
 | 基础支撑专题 | [`大模型架构（Model Architecture）`](./topic_discussion/model_architecture/intro.md) | 结构演进、代表模型和 MoE / 稀疏化。 | 想补模型结构背景与横向对照的学习者。 | ✅ 持续优化 |
@@ -275,6 +277,7 @@ You do not need to start from `00` in strict order. `00` is the prerequisite lan
 | Cross-Cutting Topic | [Communication and Parallelism Topic](./topic_discussion/communication_parallel/intro.md) | NCCL, AllReduce, ZeRO, PP, TP, and validation. | Learners who want to understand multi-GPU scaling and communication cost. | ✅ Ongoing |
 | Cross-Cutting Topic | [Performance Analysis Topic](./topic_discussion/profiling/intro.md) | Evidence collection, trace reading, regression validation, and action decisions. | Learners who want systematic performance diagnosis and debugging methods. | ✅ Ongoing |
 | Cross-Cutting Topic (In Progress) | [Multimodal Topic](./topic_discussion/multimodal/intro.md) | Multimodal inference as the main line: visual representations, alignment, visual tokens, inference cost, and task evaluation; training is shared prerequisite. | Learners entering vision-language models, document understanding, or multimodal reasoning. | 🛠 In progress |
+| Cross-Cutting Topic (In Progress) | [Deployment and Heterogeneous Systems Topic](./topic_discussion/deployment_heterogeneous/intro.md) | Model artifacts, inference backends, CPU/GPU/NPU coordination, resource orchestration, and deployment validation. | Learners who want to understand how models become deployable services. | 🛠 In progress |
 | Foundation Topic | [Supervised Fine-Tuning and Training Engineering Topic](./topic_discussion/fine_tuning_training/intro.md) | SFT, LoRA, training control, data engineering, and project preparation. | Learners who want stronger supervised fine-tuning and training-engineering foundations. | ✅ Ongoing |
 | Foundation Topic | [Backpropagation and Training Mechanics Topic](./topic_discussion/backpropagation_training_mechanism/intro.md) | Autograd, backward, checkpointing, offload, and training rhythm. | Learners who want stronger training-mechanism foundations. | ✅ Ongoing |
 | Foundation Topic | [Model Architecture Topic](./topic_discussion/model_architecture/intro.md) | Structure evolution, representative models, and MoE/sparsity. | Learners who want structural background and model comparison. | ✅ Ongoing |

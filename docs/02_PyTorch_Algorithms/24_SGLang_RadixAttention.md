@@ -29,32 +29,24 @@ RadixAttention 要解决的就是前缀复用问题：把已经算过的 prompt 
 
 ---
 
-### Step 1: 核心机制对比
+### Step 1: 公共前缀与缓存复用
 
-> **vLLM PagedAttention：重点是分页与 Block 管理**
-> vLLM 的核心抽象是把 KV Cache 切成可调度的 block，并通过 block table 管理请求到物理块的映射；本节不把它简化成“不能共享前缀”。
+重复出现的 System Prompt 或历史上下文会让请求反复执行相同的 prefill。RadixAttention 把已经出现过的 token 前缀登记成可查找的树路径，新请求先查找最长公共前缀，再只计算未命中的后缀。
 
-> **SGLang RadixAttention：基于基数树的共享路由**
-> 系统维护一棵可共享的前缀树。树的每一条边代表一段 Token 序列，节点可以记录这段序列对应的缓存引用；公共边只在索引结构中保存一份。
-> 当新请求到来时，SGLang 会用它的 Prompt 去这棵树里做**最长前缀匹配 (Longest Prefix Match)**。
-> 匹配到的部分直接拿来用，没匹配到的部分再去计算并作为新分支挂在树上。
-> **这里的核心不是“树有多复杂”，而是“共享前缀只登记一条路径，后续请求沿着同一路径寻找可复用状态”。** 实际是否复用同一份 KV Tensor，还要看 backend 的存储、引用计数和生命周期管理。
+| 概念 | 它记录什么 | 对请求执行的作用 |
+|---|---|---|
+| 公共前缀 | 多个请求开头相同的 token 序列 | 作为可复用的候选缓存范围 |
+| Radix Tree | 按 token 路径组织共享边，并支持最长前缀匹配 | 快速找到当前请求可以复用的范围 |
+| 未命中后缀 | 从首个不一致 token 开始的剩余序列 | 继续执行 prefill，并登记为新分支 |
+| PagedAttention 对照 | 按物理 Block 管理 KV Cache；RadixAttention 按 token 前缀组织共享路径 | 前者解决分页分配，后者强调前缀查找与复用 |
 
-> **最长前缀匹配公式**
-> 对于一个新的请求前缀 `prompt_tokens`，在所有已缓存路径中找到共享前缀长度最大的那一条：
-> $$H = \max_j \operatorname{lcp}(prompt\_tokens, cached\_path_j)$$
-> 其中 `H` 就是可以直接复用的 Hit Length。
-> `H` 越大，说明当前请求命中的公共前缀越长，可直接复用的 KV Cache 越多，后续重计算越少。
-> 如果 `H > 0`，说明前 `H` 个 token 的 KV Cache 可以直接复用；如果 `H = 0`，说明没有命中任何缓存路径。
-
-> **为什么它适合多轮对话？**
-> 因为多轮对话里，不同请求往往共享很长的 System Prompt 或历史上下文。Radix Tree 可以把公共前缀组织成共享路径，后续请求沿着同一路径查找；实际是否共享 KV Tensor 还取决于 backend 的 block 和生命周期管理。
+本节先建立“前缀登记 → 最长匹配 → 命中复用 / 后缀计算”的整体视野；实际 KV Tensor 的存储、引用计数和释放仍由 backend 的缓存管理负责。
 
 ![RadixAttention 前缀树图](../public/02_PyTorch_Algorithms/24_radix_attention_tree.svg)
 
-### Step 2: Radix Tree 的插入与匹配
+### Step 2: Radix Tree 的插入、分裂与匹配
 
-这里用 Python 数据结构观察一条前缀路径如何插入、分裂和匹配。重点是沿共享边查找最长公共前缀，再把未命中的 token 留给后续 prefill。
+用两条有公共前缀的请求观察路径如何插入、分裂和匹配：先沿共享边查找最长公共前缀，再把未命中的 token 留给后续 prefill。题目区会据此检查插入、边分裂、最长匹配和 prompt 拆分。
 
 | 操作 | 输入 | 树的变化 | 要观察的结果 |
 |---|---|---|---|
@@ -62,23 +54,31 @@ RadixAttention 要解决的就是前缀复用问题：把已经算过的 prompt 
 | 匹配 | 新请求 prompt | 沿边逐段比较 token | 返回最长命中长度 `hit_len` |
 | 拆分 | `hit_len` 与 prompt | 切出命中前缀和未命中 suffix | suffix 进入后续 prefill |
 
-题目区要求补全插入、边分裂、最长前缀匹配和 prompt 拆分，并用两条有公共前缀的请求检查这三种状态变化。
+
 ### Step 3: 命中范围如何进入执行计划
 
-树匹配返回的是 token 范围，执行器还要把它转换成“复用多少、重新计算多少”的计划。
+树匹配返回 token 范围，执行器还要把它转换成“复用多少、重新计算多少”的执行计划。最长公共前缀为：
+$$H = \max_j \operatorname{lcp}(prompt\_tokens, cached\_path_j)$$
 | 字段 | 含义 | 下一步 |
 |---|---|---|
 | `hit_len` | 从 prompt 开始连续命中的 token 数 | 读取对应前缀缓存 |
 | `hit_prefix` | 可复用的 token 前缀 | 跳过重复 prefill |
 | `miss_suffix` | 命中位置之后的 token | 执行剩余 prefill，并登记新路径 |
 | `terminal` / `kv_cache_ptr` | 标记完整缓存路径，并关联缓存句柄 | 决定命中结果是否有可复用的缓存对象 |
+| 证据范围 | `hit_len` 是索引层命中指标，不等于真实显存节省量 | 真实收益需结合 backend 与 workload 测量 |
 
 ![Radix Tree 命中到执行计划](../public/02_PyTorch_Algorithms/24_radix_match_flow.svg)
 
-因此，`hit_len` 是索引层的命中指标，不等于真实显存节省量；真实收益还要结合 backend 的 KV Cache 管理和 workload 测量。
-### Step 4: 验证树操作
 
+### Step 4: 实现并验证前缀缓存索引
+
+实现时把索引操作和执行计划分开检查，便于定位是树结构错误，还是命中范围转换错误。
 完成插入、`match_prefix`、`split_prompt` 后，确认四件事：公共边是否共享、最长命中长度是否正确、可复用前缀是否正确拆出、没有命中的 prompt 是否能回退到完整重算。
+| 实现部分 | 需要完成的内容 | 验证重点 |
+|---|---|---|
+| 索引操作 | `insert`、`match_prefix`、`split_prompt` | 公共边共享，部分重叠时正确分裂 |
+| 执行计划 | 根据 `hit_len` 拆出 `hit_prefix` 与 `miss_suffix` | 命中部分复用，后缀继续 prefill |
+| 退化路径 | 处理未命中或空 prompt | 能回退到完整重算，不误报命中 |
 ### 提示
 
 - `insert` 遇到部分重叠边时需要分裂旧边，不能继续把整条路径挂在根节点下。

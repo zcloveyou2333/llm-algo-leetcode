@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1080" viewBox="0 0 1400 1080">
-  <rect width="1400" height="760" fill="#f7fafc"/>
+  <rect width="1400" height="1080" fill="#f7fafc"/>
   <style>
     .title { font: 700 30px sans-serif; fill: #172b4d; }
     .head { font: 700 22px sans-serif; fill: #172b4d; }
@@ -20,30 +20,30 @@
   <text x="220" y="130" text-anchor="middle" class="head">前置机制 Notebook</text>
   <text x="220" y="158" text-anchor="middle" class="small">理解原理与局部模型</text>
   <rect x="75" y="190" width="290" height="58" fill="#ffffff" stroke="#8ab6e6" class="box"/>
-  <text x="220" y="226" text-anchor="middle" class="text">21 解码策略</text>
+  <text x="220" y="226" text-anchor="middle" class="text">解码策略</text>
   <rect x="75" y="265" width="290" height="58" fill="#ffffff" stroke="#8ab6e6" class="box"/>
-  <text x="220" y="301" text-anchor="middle" class="text">22 PagedAttention</text>
+  <text x="220" y="301" text-anchor="middle" class="text">PagedAttention</text>
   <rect x="75" y="340" width="290" height="58" fill="#ffffff" stroke="#8ab6e6" class="box"/>
-  <text x="220" y="376" text-anchor="middle" class="text">24 RadixAttention</text>
+  <text x="220" y="376" text-anchor="middle" class="text">RadixAttention</text>
   <rect x="75" y="415" width="290" height="58" fill="#ffffff" stroke="#8ab6e6" class="box"/>
-  <text x="220" y="451" text-anchor="middle" class="text">34 Prefix Cache</text>
+  <text x="220" y="451" text-anchor="middle" class="text">Prefix Cache</text>
   <rect x="75" y="490" width="290" height="58" fill="#ffffff" stroke="#8ab6e6" class="box"/>
-  <text x="220" y="526" text-anchor="middle" class="text">36 / 37 调度与 KV Cache</text>
+  <text x="220" y="526" text-anchor="middle" class="text">调度与 KV Cache</text>
   <text x="220" y="598" text-anchor="middle" class="small">前置节解释“为什么可能有效”</text>
 
   <rect x="520" y="90" width="360" height="560" fill="#e8f7ef" stroke="#45a36b" class="box"/>
-  <text x="700" y="130" text-anchor="middle" class="head">66 真实 Backend 项目</text>
+  <text x="700" y="130" text-anchor="middle" class="head">真实 Backend 项目</text>
   <text x="700" y="158" text-anchor="middle" class="small">观察端到端服务行为</text>
   <rect x="555" y="210" width="290" height="72" fill="#ffffff" stroke="#72c28a" class="box"/>
-  <text x="700" y="242" text-anchor="middle" class="text">Step 6：vLLM</text>
-  <text x="700" y="267" text-anchor="middle" class="small">G0 baseline / G1 单变量</text>
+  <text x="700" y="242" text-anchor="middle" class="text">vLLM backend</text>
+  <text x="700" y="267" text-anchor="middle" class="small">baseline / 单变量对照</text>
   <rect x="555" y="325" width="290" height="72" fill="#ffffff" stroke="#72c28a" class="box"/>
-  <text x="700" y="357" text-anchor="middle" class="text">Step 7：SGLang</text>
+  <text x="700" y="357" text-anchor="middle" class="text">SGLang backend</text>
   <text x="700" y="382" text-anchor="middle" class="small">可选 backend 对照</text>
   <rect x="555" y="440" width="290" height="72" fill="#ffffff" stroke="#72c28a" class="box"/>
-  <text x="700" y="472" text-anchor="middle" class="text">Step 8：跨 backend</text>
+  <text x="700" y="472" text-anchor="middle" class="text">跨 backend 对照</text>
   <text x="700" y="497" text-anchor="middle" class="small">检查条件一致，再比较结果</text>
-  <text x="700" y="598" text-anchor="middle" class="small">66 不重新实现这些机制</text>
+  <text x="700" y="598" text-anchor="middle" class="small">本项目不重新实现这些机制</text>
 
   <rect x="1000" y="90" width="360" height="560" fill="#fff5e6" stroke="#e0a23b" class="box"/>
   <text x="1180" y="130" text-anchor="middle" class="head">统一指标与结论</text>
@@ -65,40 +65,40 @@
   <text x="940" y="345" text-anchor="middle" class="small">统一 benchmark</text>
 
   <path d="M700 650 L700 730" class="arrow"/>
-  <text x="700" y="700" text-anchor="middle" class="small">从 66 的统一口径分流到专项项目</text>
+  <text x="700" y="700" text-anchor="middle" class="small">从统一口径分流到专项项目</text>
 
   <rect x="40" y="750" width="1320" height="260" fill="#f0eefb" stroke="#8069b5" class="box"/>
-  <text x="700" y="792" text-anchor="middle" class="head">66–71 项目出口：每个项目验证一个主要问题</text>
+  <text x="700" y="792" text-anchor="middle" class="head">专项项目出口：每个项目验证一个主要问题</text>
 
   <rect x="65" y="830" width="195" height="125" fill="#ffffff" stroke="#9b8ac7" class="box"/>
-  <text x="162" y="865" text-anchor="middle" class="text">66 推理性能对比</text>
+  <text x="162" y="865" text-anchor="middle" class="text">推理性能对比</text>
   <text x="162" y="895" text-anchor="middle" class="small">backend baseline</text>
   <text x="162" y="920" text-anchor="middle" class="small">统一指标与决策</text>
 
   <rect x="280" y="830" width="195" height="125" fill="#ffffff" stroke="#9b8ac7" class="box"/>
-  <text x="377" y="865" text-anchor="middle" class="text">67 量化部署</text>
+  <text x="377" y="865" text-anchor="middle" class="text">量化部署</text>
   <text x="377" y="895" text-anchor="middle" class="small">GPTQ / AWQ / GGUF</text>
   <text x="377" y="920" text-anchor="middle" class="small">显存、速度与质量</text>
 
   <rect x="495" y="830" width="195" height="125" fill="#ffffff" stroke="#9b8ac7" class="box"/>
-  <text x="592" y="865" text-anchor="middle" class="text">68 推测解码</text>
+  <text x="592" y="865" text-anchor="middle" class="text">推测解码</text>
   <text x="592" y="895" text-anchor="middle" class="small">draft / verify</text>
   <text x="592" y="920" text-anchor="middle" class="small">接受率与吞吐</text>
 
   <rect x="710" y="830" width="195" height="125" fill="#ffffff" stroke="#9b8ac7" class="box"/>
-  <text x="807" y="865" text-anchor="middle" class="text">69 前缀缓存</text>
+  <text x="807" y="865" text-anchor="middle" class="text">前缀缓存</text>
   <text x="807" y="895" text-anchor="middle" class="small">Prefix / Radix Cache</text>
   <text x="807" y="920" text-anchor="middle" class="small">命中率与 TTFT</text>
 
   <rect x="925" y="830" width="195" height="125" fill="#ffffff" stroke="#9b8ac7" class="box"/>
-  <text x="1022" y="865" text-anchor="middle" class="text">70 服务调度</text>
+  <text x="1022" y="865" text-anchor="middle" class="text">服务调度</text>
   <text x="1022" y="895" text-anchor="middle" class="small">队列与并发</text>
   <text x="1022" y="920" text-anchor="middle" class="small">公平性与吞吐</text>
 
   <rect x="1140" y="830" width="195" height="125" fill="#ffffff" stroke="#9b8ac7" class="box"/>
-  <text x="1237" y="865" text-anchor="middle" class="text">71 MLA / KV Cache</text>
+  <text x="1237" y="865" text-anchor="middle" class="text">MLA / KV Cache</text>
   <text x="1237" y="895" text-anchor="middle" class="small">压缩表示与容量</text>
   <text x="1237" y="920" text-anchor="middle" class="small">访问路径与代价</text>
 
-  <text x="700" y="1045" text-anchor="middle" class="small">机制 Notebook 解释原理；66–71 在真实 workload 中验证局部收益，最终回到统一指标比较。</text>
+  <text x="700" y="1045" text-anchor="middle" class="small">机制 Notebook 解释原理；专项项目在真实 workload 中验证局部收益，最终回到统一指标比较。</text>
 </svg>

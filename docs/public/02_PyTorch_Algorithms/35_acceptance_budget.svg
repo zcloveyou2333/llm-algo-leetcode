@@ -1,11 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 500" role="img" aria-labelledby="t d">
-<title id="t">多 Token 解码的接受长度与收益</title><desc id="d">提议长度、连续接受数量和目标模型调用代价共同决定多 Token 解码收益。</desc>
-<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#475569"/></marker><style>.h{font:700 26px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#0f172a}.s{font:500 15px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#475569}.l{font:700 18px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#111827}.b{font:500 14px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#334155}.box{stroke-width:3;rx:16}.f{stroke:#475569;stroke-width:4;fill:none;marker-end:url(#a)}</style></defs>
-<rect width="1200" height="500" fill="#f8fafc"/><text x="50" y="55" class="h">多 Token 解码：接受长度决定收益</text><text x="50" y="83" class="s">一次提出更多候选，只有连续接受才能减少后续单 Token 推进。</text>
-<rect x="60" y="190" width="240" height="110" class="box" fill="#eff6ff" stroke="#3b82f6"/><text x="180" y="232" text-anchor="middle" class="l">提议长度</text><text x="180" y="263" text-anchor="middle" class="b">最多尝试 K 个 token</text>
-<rect x="375" y="190" width="240" height="110" class="box" fill="#fef3c7" stroke="#d97706"/><text x="495" y="232" text-anchor="middle" class="l">连续接受</text><text x="495" y="263" text-anchor="middle" class="b">实际推进 N 个 token</text>
-<rect x="690" y="115" width="220" height="100" class="box" fill="#ecfccb" stroke="#65a30d"/><text x="800" y="155" text-anchor="middle" class="l">N 较大</text><text x="800" y="185" text-anchor="middle" class="b">目标模型调用减少</text>
-<rect x="690" y="260" width="220" height="100" class="box" fill="#fff1f2" stroke="#e11d48"/><text x="800" y="300" text-anchor="middle" class="l">N 较小</text><text x="800" y="330" text-anchor="middle" class="b">回退成本抵消收益</text>
-<rect x="980" y="190" width="160" height="110" class="box" fill="#f5f3ff" stroke="#8b5cf6"/><text x="1060" y="232" text-anchor="middle" class="l">记录指标</text><text x="1060" y="263" text-anchor="middle" class="b">接受率 · 推进量</text>
-<path d="M300 245H375M615 235L690 165M615 265L690 310M910 165L980 225M910 310L980 265" class="f"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="600" viewBox="0 0 1320 600" role="img" aria-labelledby="title desc">
+  <title id="title">多 Token 解码的收益判断</title>
+  <desc id="desc">提议长度、连续接受长度和验证回退成本共同决定有效推进量以及最终收益。</desc>
+  <style>text{font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;fill:#172033}.title{font-size:29px;font-weight:700}.sub{font-size:15px;fill:#475569}.group{font-size:18px;font-weight:700;fill:#334155}.label{font-size:17px;font-weight:700}.small{font-size:13px;fill:#475569}.panel{stroke-width:2;rx:18;ry:18}.node{stroke-width:2;rx:14;ry:14}.line{stroke:#52606d;stroke-width:3;stroke-linecap:round;fill:none}.branch{stroke:#94a3b8;stroke-width:3;stroke-linecap:round;fill:none}</style>
+  <rect width="1320" height="600" fill="#f8fafc"/>
+  <text x="55" y="55" class="title">多 Token 解码：接受长度如何决定收益</text>
+  <text x="55" y="86" class="sub">提议长度决定尝试范围，连续接受长度决定有效推进，验证与回退成本决定净收益。</text>
+
+  <rect x="500" y="110" width="320" height="78" class="node" fill="#e0f2fe" stroke="#38bdf8"/>
+  <text x="660" y="143" text-anchor="middle" class="label">一轮收益判断</text>
+  <text x="660" y="169" text-anchor="middle" class="small">有效推进是否抵消额外成本</text>
+
+  <rect x="45" y="245" width="370" height="155" class="panel" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="70" y="282" text-anchor="start" class="group">提议规模</text>
+  <rect x="95" y="315" width="270" height="58" class="node" fill="#ffffff" stroke="#7b9bc7"/>
+  <text x="230" y="350" text-anchor="middle" class="label">提议长度 K</text>
+  <text x="230" y="369" text-anchor="middle" class="small">本轮最多检查多少候选</text>
+
+  <rect x="475" y="245" width="370" height="155" class="panel" fill="#f0fdf4" stroke="#86efac"/>
+  <text x="500" y="282" text-anchor="start" class="group">接受程度</text>
+  <rect x="525" y="315" width="270" height="58" class="node" fill="#ffffff" stroke="#79a889"/>
+  <text x="660" y="345" text-anchor="middle" class="label">接受长度 N</text>
+  <text x="660" y="367" text-anchor="middle" class="small">连续通过的候选数量</text>
+
+  <rect x="905" y="245" width="370" height="155" class="panel" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="930" y="282" text-anchor="start" class="group">额外代价</text>
+  <rect x="955" y="315" width="270" height="58" class="node" fill="#ffffff" stroke="#c79a46"/>
+  <text x="1090" y="345" text-anchor="middle" class="label">验证与回退</text>
+  <text x="1090" y="367" text-anchor="middle" class="small">目标计算与后缀重生成</text>
+
+  <rect x="390" y="475" width="540" height="70" class="node" fill="#ede9fe" stroke="#9b8ab9"/>
+  <text x="660" y="506" text-anchor="middle" class="label">有效推进量与接受比例</text>
+  <text x="660" y="530" text-anchor="middle" class="small">accepted tokens / proposed tokens = N / K</text>
+  <rect x="990" y="475" width="270" height="70" class="node" fill="#fef3c7" stroke="#c79a46"/>
+  <text x="1125" y="506" text-anchor="middle" class="label">净收益判断</text>
+  <text x="1125" y="530" text-anchor="middle" class="small">采用、调参或放弃</text>
+
+  <line x1="660" y1="188" x2="660" y2="215" class="branch"/><line x1="230" y1="215" x2="1090" y2="215" class="branch"/>
+  <line x1="230" y1="215" x2="230" y2="315" class="line"/><path d="M222 307L230 315L238 307Z" fill="#52606d"/>
+  <line x1="660" y1="215" x2="660" y2="315" class="line"/><path d="M652 307L660 315L668 307Z" fill="#52606d"/>
+  <line x1="1090" y1="215" x2="1090" y2="315" class="line"/><path d="M1082 307L1090 315L1098 307Z" fill="#52606d"/>
+  <line x1="660" y1="373" x2="660" y2="475" class="line"/><path d="M652 467L660 475L668 467Z" fill="#52606d"/>
+  <line x1="1090" y1="373" x2="1090" y2="430" class="branch"/><line x1="1090" y1="430" x2="820" y2="430" class="branch"/><line x1="820" y1="430" x2="820" y2="475" class="line"/><path d="M812 467L820 475L828 467Z" fill="#52606d"/>
+  <line x1="930" y1="510" x2="990" y2="510" class="line"/><path d="M982 502L990 510L982 518Z" fill="#52606d"/>
 </svg>

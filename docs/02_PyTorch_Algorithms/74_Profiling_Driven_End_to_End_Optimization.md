@@ -14,14 +14,7 @@
 
 ## 本节导读
 
-本节把 73 / 76 / 75 的结果与 profiler 证据接起来：先确认已有结论，再用 trace 解释时间和显存代价。主线只分析一个代表性 baseline 与 candidate；其他 workload 用于扩展，不替代主线证据。推理方向可选用 71 的 MLA workload 做同样的 trace 分析，但 74 不重新讲 MLA 机制。
-**层级定位：** 本项目是跨层 profiling 项目，覆盖 L1-L4 的执行证据；若采集资源调度、版本发布或服务可用性指标，才延伸到 L5。它负责定位和验证，不替代具体的算子优化、推理服务或平台治理项目。
-
-**输入与输出：** 输入是 73 的 baseline、76 的策略 benchmark 和 75 的预算决策；输出是带 trace 证据的收口报告。CPU 路径只合并报告和检查证据，GPU 路径才采集代表性 baseline / candidate 的 CPU/CUDA trace；没有 trace 时只能报告证据缺口。
-**实验分层：** CPU 验证报告链路，GPU 验证阶段耗时、kernel / 内存活动和同步证据；二者都不能代替另一方。
-**主责与复用边界：** 本项目主责是用 trace 检查显存优化解释是否成立；性能分析专题复用采集和归因方法，算子优化复用 kernel 证据，推理项目只作为扩展 workload，不在本项目重新选择量化、调度或并行策略。
-
-> 运行提示：先查看[使用指南中的项目环境预检与安装说明](../guide.md#项目环境预检与安装)，再打开真实 profiling 开关。CPU 路径只合并报告；CUDA trace 必须先通过 GPU 预检。
+当一次优化改变了训练时间或显存占用时，本节带你判断变化来自哪里，并用证据和复测决定是否保留这项改动。你将从已有结果提出瓶颈假设，再用针对性的证据和复测结果检查这个假设，最后形成可复查的优化结论。
 
 **关键词：** `profiling`, `optimization`, `end-to-end`
 
@@ -29,102 +22,61 @@
 
 ## 前置阅读
 
-**导语：** 先完成 73、76、75 的训练侧测量、策略比较和预算决策，再用 profiling 把显存优化方案带入端到端 workload，判断改动是否值得最终保留。
+**导语：** 先了解 profiling 的基本观察方法，再结合训练测量、显存预算和策略比较结果，进入本节的端到端证据分析。
 - [P1: 13. Profiling and Bottleneck Analysis | 性能分析与瓶颈定位](../01_Hardware_Math_and_Systems/13_Profiling_and_Bottleneck_Analysis.md)
 - [73. Training Performance Analysis | 训练性能分析](./73_Training_Performance_Analysis.md)
-- [76. Activation Checkpoint Offload Benchmark | Activation / Checkpoint / Offload 对比项目](./76_Activation_Checkpoint_Offload_Benchmark.md)
 - [75. Memory Budget Compression Project | 显存预算压缩项目](./75_Memory_Budget_Compression_Project.md)
-- [66. Inference Performance Comparison | 推理性能对比实验](./66_Inference_Performance_Comparison.md)（推理扩展）
-- [71. MLA / KV Cache Architecture Benchmark | MLA / KV Cache 结构基准](./71_MLA_KV_Cache_Architecture_Benchmark.md)（推理 profiling 扩展）
+- [76. Activation Checkpoint Offload Benchmark | Activation / Checkpoint / Offload 对比项目](./76_Activation_Checkpoint_Offload_Benchmark.md)
 
-## 相关阅读
-
-**导语：** 完成优化闭环后，可以继续把瓶颈定位推进到更底层的实现手段，或回到并行/系统项目页验证是否值得迁移。
-- [79. Distributed Parallel Benchmark | 分布式并行基准项目](./79_Distributed_Parallel_Benchmark.md)
-- [67. Quantized Inference and Deployment | 量化推理与部署](./67_Quantized_Inference_and_Deployment.md)
 ---
-### Step 1: 定义端到端优化目标
-先回答一个问题：这次优化到底要解决什么瓶颈，成功标准是什么？
+### Step 1：定义比较对象与成功条件
+先确定比较对象、成功指标、统一条件和记录字段，为后续分析建立可复查的实验口径。
 
-| 环节 | 本节内容 | 形成的证据 |
+| 项目要素 | 固定或产生的内容 | 你需要留下的记录 |
 |:---|:---|:---|
-| 输入 | 73 的训练 baseline、76 的候选比较、75 的预算决策，以及 baseline / candidate 的 profiler trace | 说明当前结论来自哪组模型、workload 和硬件 |
-| 操作 | 在相同 workload 下对照时间线，定位 forward、backward、重算、搬运或同步活动；一次只改一个变量 | 把“显存下降”或“变慢”连接到可观察的执行活动 |
-| 输出 | baseline / candidate 指标表、trace 路径、瓶颈类别、证据、下一步改动和决策 | 形成可复核的 `accept / tune / reject` 或证据缺口 |
-| 边界 | CPU 只检查报告合并和字段逻辑；只有 GPU trace 才能支持 CUDA 时间线、kernel 活动和搬运判断 | CPU 结果不能替代 profiling 证据，局部指标也不能直接升级为端到端结论 |
-
-- 主线固定模型、输入数据、batch size、seq len、硬件环境和运行后端，保证 trace 可比较；扩展 workload 必须另列为独立证据。
-- 明确优化目标，例如降低 step time、提升 throughput、降低 peak memory 或减少通信等待，并先回到 Task 1 的账本判断问题属于容量、带宽、计算还是同步。
-- 同时写清约束条件：训练任务要保留 loss / accuracy 约束，推理任务要保留精度、输出一致性或服务 SLA 约束。
-- Baseline 需要能稳定复现，不能只跑一次；建议至少 warm-up 若干轮，再测多轮平均值。
-- 这一步的目标是让后面的优化有判断标准，而不是只得到一组孤立数字。
+| 输入 | baseline、候选方案和共同 workload 条件 | 明确本次比较的对象与口径 |
+| 目标 | step time、throughput、peak memory、等待时间或质量中的主要目标 | 写出可接受的成功阈值 |
+| 证据 | 测量配置、trace 路径和结果文件 | 规定后续需要核对的执行活动 |
+| 输出 | 比较计划、记录模板和成功条件 | 为后续瓶颈分析准备可复查的输入 |
 
 ![74 profiling 端到端闭环](../public/02_PyTorch_Algorithms/74_end_to_end_profile_loop.svg)
-<div align="center"><strong>指标变化先由 trace 提出假设，再用同一 workload 复测。</strong></div>
 
-### Step 2: 先确认 baseline 和 profiling 口径合法
+### Step 2：从基线结果提出瓶颈假设
 
-profiling 优化必须先确认 baseline 可复现，再把“慢”拆成可解释的瓶颈类型，不能直接对着单次热点截图开刀。
+先运行 baseline，观察总耗时、吞吐和峰值显存分别集中在哪些执行阶段；指标描述现象，trace 帮助定位原因。一次热点占比高不等于根因，还要结合 workload、硬件和测量轮次，整理成一句可以被复查的瓶颈假设。
 
-- 推荐先记录总耗时、吞吐、峰值显存，再用 profiler 看热点算子和同步点；73 / 76 的表格告诉你“发生了什么”，trace 用来解释“为什么”。
-- 训练场景优先拆成：数据加载、forward、backward、optimizer step、显存峰值和多卡通信，并特别观察 19 的 checkpoint 重算、42 的 CPU-GPU 搬运是否出现在时间线上。
-- 推理场景优先拆成：prefill、decode、KV cache、采样逻辑、数据搬运和 kernel 开销；如果使用 71 的 DeepSeek-V2-Lite / MLA workload，还要单独观察 latent KV 读写、位置相关分量和对应 kernel。
-- 不要只找“最慢的一行代码”，而要判断瓶颈属于哪一类资源：计算、显存容量、内存带宽、通信还是调度；一个算子占比高不等于它就是可优化的根因。
-- 这一步的产物应该是一句话瓶颈结论，例如：`当前瓶颈主要来自 decode 阶段 KV cache 读取`。
+| 场景 | 优先观察的阶段 | 需要形成的瓶颈假设 |
+|:---|:---|:---|
+| 训练 | 数据加载、forward、backward、optimizer step、重算、搬运和通信 | 计算、容量、带宽、通信或调度中的主要约束 |
+| 推理 | prefill、decode、KV cache、采样、搬运和 kernel | 例如：`decode 阶段 KV cache 读取是主要瓶颈` |
 
-### Step 3: 用统一口径比较收益与代价
 
-profiling 项目必须同时看 step time、throughput、peak memory 和任务约束，不能只挑单项热点收益下结论。
+### Step 3：用对照实验检验瓶颈假设
 
-- 一次只改一个方向，例如调整 batch size、开启混合精度、替换 kernel、减少同步点或改变 cache 策略；改动必须能回应 trace 中的具体证据。
-- 改完后重新测同样的指标，比较 baseline / tuned 的差异。
-- 如果改动影响训练 loss、推理输出、显存峰值或系统稳定性，要把代价写清楚。
-- 如果某个改动只是在一项指标上变好，却让另一项变差，要把取舍写清楚。
-- 这一轮修改的目标是建立因果关系，而不是一次性把所有优化开关都打开。
+围绕一个瓶颈假设，只改变一个变量，再用同一 workload 比较 baseline 与 tuned。
 
-#### Roofline：把 profiler 指标解释成瓶颈假设
+| 顺序 | 操作 | 记录内容 |
+|:---|:---|:---|
+| 1 | 固定模型、workload、batch、seq_len、warmup、iters、backend 和硬件 | warmup 不计入正式测量 |
+| 2 | 只改一个与 trace 相关的方向，如 batch、精度、kernel、同步或缓存 | 记录改动和对应证据 |
+| 3 | 复测 step time、throughput、峰值显存及 loss / 精度 / 输出约束 | 比较收益与代价 |
+| 4 | 对照预先设定的成功条件，判断证据是否支持假设 | 记录支持、不支持或证据不足 |
+| 5 | 可选：如需使用 Roofline，补充 FLOPs、memory_bytes、硬件 peak 和 bandwidth | 记录 arithmetic intensity、bound 和 evidence level |
 
-Roofline 用算术强度把计算能力和内存带宽放到同一张图上：`arithmetic_intensity = FLOPs / memory_bytes`，可达到的性能上限近似为 `min(peak_FLOPs, bandwidth × arithmetic_intensity)`。算术强度较低时，带宽上限更可能先到达；算术强度较高时，计算上限更可能成为约束。它用于提出和检查瓶颈假设，不会替代端到端时间线。
+![74 对照实验与决策流程](../public/02_PyTorch_Algorithms/74_experiment_decision_flow.svg)
 
-| 输入 | CPU 可验证的结果 | 只有 GPU profiler 才能确认的内容 |
-| --- | --- | --- |
-| FLOPs、访存字节数、峰值算力、显存带宽 | 算术强度、计算/带宽上限和理论 bound | kernel 的实际 FLOPs/s、实际带宽和硬件受限原因 |
-| 缺少 FLOPs 或字节计数 | 输出 `insufficient_evidence`，不做 bound 判断 | 需要 Nsight Compute 或可靠的硬件计数器导出 |
+### Step 4（CPU 代码练习）：实现指标汇总与项目决策
 
-因此，CPU 实验只检查公式和分类逻辑；GPU trace 如果没有 FLOP/DRAM counter，也只能记录 `roofline_status=not_collected`，不能把某个 kernel 直接写成 compute-bound 或 memory-bound。
+把平均耗时、指标差值和 `accept / tune / reject` 决策实现成可运行代码；理论 Roofline 和报告格式已经提供，学习重点是把实验字段转换成项目判断。
 
-### Step 4: 输出端到端优化结论
+| TODO | 函数 | CPU 实现重点 | 输出 |
+|:---|:---|:---|:---|
+| TODO 1 | `benchmark_fn` | warmup 不计入正式计时，使用 `perf_counter()` 统计平均耗时 | `avg_time_ms` |
+| TODO 2 | `summarize_optimization_result` | 按指标方向计算 baseline / tuned 差值 | 时间、显存、吞吐差值 |
+| 给定实现 | `estimate_roofline` | 阅读理论上限和证据级别，不读取 GPU 计数器 | `arithmetic_intensity`、`bound`、`evidence_level` |
+| 给定实现 | `format_optimization_report` | 展示指标、瓶颈和下一步动作 | Markdown 报告 |
+| TODO 3 | `recommend_optimization_decision` | 用时间、显存和吞吐阈值区分 `accept / tune / reject` | 项目决策 |
 
-端到端优化最终不是输出“某个热点是不是降了”，而是输出这次改动在当前任务约束下是否值得继续保留、微调或回退。
-
-- 输出 baseline / tuned 对比表，至少包含 step time、throughput、peak memory 和备注。
-- 附上 profiling 截图或关键统计，说明瓶颈来自哪一类资源。
-- 写清楚本次改动、收益、代价和是否满足约束。
-- 如果优化没有达到目标，记录失败原因和下一轮优先级。
-- 将端到端结果与 75 的预算决策对照；如果 profiling 推翻了局部结论，要记录是 workload、同步、数据搬运还是系统开销造成的。
-- 最终产物应回答：原始瓶颈是什么，做了什么改动，收益有多大，这个改动是否值得保留。
-
-### Step 5: 最小代码模板
-
-上面的 Step 1-4 是完整 profiling 驱动优化流程。下面的代码实现其中最小、可复用的四块：测平均耗时、汇总 baseline / tuned 指标差异、生成优化报告，以及把结果收成 `accept / tune / reject` 的轻量决策。真实项目中的 profiling 截图、瓶颈证据和优化策略，需要基于这四步继续补充。
-
-### Step 6: 按统一协议保存项目结果
-
-74 与 73、76、75 共用实验外层字段：模型、设备、dtype、workload、baseline / tuned、step time、throughput、peak memory、质量约束和 `accept / tune / reject`。74 额外保存 profiling 证据，因此不能只复制显存策略表。
-
-建议额外记录：`profile.tool`、`profile.top_operators`、`profile.compute_ratio`、`profile.memory_ratio`、`profile.communication_ratio`，以及 `bottleneck.category`、`bottleneck.evidence`、`bottleneck.optimization`。`trace.status=collected` 只表示文件已生成，不等于瓶颈已经确认；只有把时间线观察、指标变化和一次针对性复验连起来，才能升级为端到端优化结论。如果当前环境没有真实 profiler，允许这些字段为空，但不能把未测量内容写成结论。
-
-项目结果协议由 `tools/profiling_result_schema.py` 提供。它不会覆盖原始实验数据；真实 GPU 或 Colab 环境完成 profiling 后，可将结果保存为 `benchmarks/results/74_profiling_optimization.json`。
-
-### 提示
-
-- 先固定 baseline，再做 profiling，再改一个变量。
-- 不要只看 step time，至少同时记录 throughput 和 peak memory。
-- 如果瓶颈不是单一算子，而是同步 / 调度 / cache，报告里要直接写出来。
-- 真实 GPU 场景可调用答案区的 `collect_torch_profile` 保存短 trace；不要把未采集的 top operators 填成推测。
-### 参数口径说明
-
-profiling 实验必须固定 model、workload、batch、seq_len、warmup、iters、backend 和硬件；`warmup` 不计入正式测量，`iters` 决定均值稳定性。优化目标可以是 step time、throughput、peak memory 或通信等待，但一次只改一个方向，并同时保留质量/稳定性约束。
 
 ```python
 import time
@@ -134,18 +86,6 @@ import time
 
 ```python
 import time
-from pathlib import Path
-
-try:
-    import torch
-except ImportError:
-    torch = None
-
-def synchronize_if_cuda():
-    """Synchronize CUDA when available; keep CPU-first execution unchanged."""
-    if torch is not None and torch.cuda.is_available():
-        torch.cuda.synchronize()
-
 
 def estimate_roofline(flops, memory_bytes, peak_flops, bandwidth):
     """用给定的理论参数估算 Roofline 上限；不读取 GPU 硬件计数器。"""
@@ -170,7 +110,7 @@ def estimate_roofline(flops, memory_bytes, peak_flops, bandwidth):
     }
 
 def benchmark_fn(fn, warmup=3, iters=10):
-    """测量 CPU/GPU 函数的平均耗时；GPU 需由同步函数包住测量区间。"""
+    """测量 CPU 函数的平均耗时；GPU trace 在 Step 5 独立采集。"""
     if warmup < 0 or iters <= 0:
         raise ValueError('warmup must be >= 0 and iters must be > 0')
     # ==========================================
@@ -212,41 +152,37 @@ def summarize_optimization_result(base_metrics, tuned_metrics):
 
 def format_optimization_report(summary, bottleneck, next_action):
     """输出指标变化、瓶颈证据边界和下一步动作。"""
-    # ==========================================
-    # TODO 3: 生成一段最小优化报告
-    # 提示: 把指标变化、瓶颈结论和下一步动作放在一起
-    # ==========================================
     header = "| 指标 | 变化 | 判断 |"
     sep = "| --- | --- | --- |"
-    # rows = ???
-    # conclusion = ???
+    rows = [
+        f"| step time | {summary['step_time_delta_ms']} ms | {'改善' if summary['time_improved'] else '未改善'} |",
+        f"| peak memory | {summary['peak_mem_delta_mb']} MB | {'改善' if summary['memory_improved'] else '未改善'} |",
+        f"| throughput | {summary['throughput_delta']} | {'改善' if summary['throughput_improved'] else '未改善'} |",
+    ]
+    conclusion = f"瓶颈判断：{bottleneck}。下一步：{next_action}。"
     return "\n".join([header, sep] + rows + [conclusion])
 
 
 def recommend_optimization_decision(summary, min_time_delta_ms=10.0, min_memory_delta_mb=512.0, min_throughput_delta=5.0):
     """使用显式阈值输出 accept / tune / reject，不把 CPU 结果写成 GPU 结论。"""
     # ==========================================
-    # TODO 4: 给出轻量优化决策
-    # 规则：
-    # - 时间和吞吐都改善：accept
-    # - 时间改善，且显存或吞吐至少有一项为正收益：tune
-    # - 否则：reject
+    # TODO 3：补全两处关键判断；其余阈值和决策分支已经给出。
+    # 规则：时间达到阈值且资源收益达标 -> accept；有正向变化但未达标 -> tune；否则 -> reject。
     # ==========================================
-    # strong_time_gain = ???
-    # strong_memory_gain = ???
-    # strong_throughput_gain = ???
-    # if ???:
-    #     decision = ???
-    #     reason = ???
-    # positive_memory_gain = summary['peak_mem_delta_mb'] > 0
-    # positive_throughput_gain = summary['throughput_delta'] > 0
-    # elif ???:
-    #     decision = ???
-    #     reason = ???
-    # else:
-    #     decision = ???
-    #     reason = ???
-    # return {'decision': decision, 'reason': reason}
+    # strong_time_gain = ???  # TODO 3a：对照 min_time_delta_ms
+    strong_memory_gain = summary['peak_mem_delta_mb'] >= min_memory_delta_mb
+    strong_throughput_gain = summary['throughput_delta'] >= min_throughput_delta
+    # positive_resource_gain = ???  # TODO 3b：显存或吞吐任一出现正向变化
+    if strong_time_gain and (strong_memory_gain or strong_throughput_gain):
+        decision = 'accept'
+        reason = '时间达到阈值，且显存或吞吐至少一项达到阈值，当前优化值得保留。'
+    elif strong_time_gain and positive_resource_gain:
+        decision = 'tune'
+        reason = '时间改善成立，但资源或吞吐收益还不够稳，建议继续微调。'
+    else:
+        decision = 'reject'
+        reason = '当前优化没有形成稳定的端到端收益，建议回退或重新定位瓶颈。'
+    return {'decision': decision, 'reason': reason}
     raise NotImplementedError
 
 ```
@@ -296,6 +232,10 @@ def test_optimization_project_template():
         decision = recommend_optimization_decision(summary, min_time_delta_ms=10.0, min_memory_delta_mb=512.0, min_throughput_delta=5.0)
         assert decision['decision'] == 'accept'
 
+        memory_summary = {'step_time_delta_ms': 12.0, 'peak_mem_delta_mb': 768.0, 'throughput_delta': 0.0, 'time_improved': True, 'memory_improved': True, 'throughput_improved': False}
+        memory_decision = recommend_optimization_decision(memory_summary, min_time_delta_ms=10.0, min_memory_delta_mb=512.0, min_throughput_delta=5.0)
+        assert memory_decision['decision'] == 'accept'
+
         mixed_summary = {'step_time_delta_ms': 12.0, 'peak_mem_delta_mb': 128.0, 'throughput_delta': 2.0, 'time_improved': True, 'memory_improved': True, 'throughput_improved': True}
         mixed_decision = recommend_optimization_decision(mixed_summary, min_time_delta_ms=10.0, min_memory_delta_mb=512.0, min_throughput_delta=5.0)
         assert mixed_decision['decision'] == 'tune'
@@ -308,9 +248,6 @@ def test_optimization_project_template():
     except NotImplementedError:
         print("请先完成 TODO 代码！")
         raise
-    except (AttributeError, NameError, TypeError, ValueError) as e:
-        print("代码可能未完成，导致变量未定义")
-        raise NotImplementedError("请先完成 TODO 代码！") from e
     except AssertionError as e:
         print(f"❌ 测试失败: {e}")
         raise NotImplementedError("请先完成 TODO 代码！") from e
@@ -336,16 +273,6 @@ test_optimization_project_template()
 
 ```python
 import time
-from pathlib import Path
-
-try:
-    import torch
-except ImportError:
-    torch = None
-
-def synchronize_if_cuda():
-    if torch is not None and torch.cuda.is_available():
-        torch.cuda.synchronize()
 
 
 def estimate_roofline(flops, memory_bytes, peak_flops, bandwidth):
@@ -370,35 +297,6 @@ def estimate_roofline(flops, memory_bytes, peak_flops, bandwidth):
         'evidence_level': 'theoretical_formula_only',
     }
 
-def collect_torch_profile(train_step_fn, output_dir='benchmarks/results/74_profile', warmup=2, iters=5):
-    """Collect a short CPU/CUDA trace and return report metadata."""
-    if torch is None:
-        raise RuntimeError('需要安装 PyTorch 才能采集 profiler trace')
-    if warmup < 0 or iters <= 0:
-        raise ValueError('warmup must be >= 0 and iters must be > 0')
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-    for _ in range(warmup):
-        train_step_fn()
-    activities = [torch.profiler.ProfilerActivity.CPU]
-    if torch.cuda.is_available():
-        activities.append(torch.profiler.ProfilerActivity.CUDA)
-    schedule = torch.profiler.schedule(wait=0, warmup=1 if iters > 1 else 0, active=max(1, iters - 1), repeat=1)
-    trace_handler = torch.profiler.tensorboard_trace_handler(str(output_path))
-    with torch.profiler.profile(activities=activities, schedule=schedule, on_trace_ready=trace_handler, record_shapes=True, profile_memory=True, with_stack=False) as prof:
-        for _ in range(iters):
-            train_step_fn()
-            prof.step()
-    return {
-        'status': 'collected',
-        'tool': 'torch.profiler',
-        'activities': [activity.name for activity in activities],
-        'trace_dir': str(output_path),
-        'warmup': warmup,
-        'iters': iters,
-    }
-
-
 def benchmark_fn(fn, warmup=3, iters=10):
     if warmup < 0 or iters <= 0:
         raise ValueError('warmup must be >= 0 and iters must be > 0')
@@ -410,11 +308,9 @@ def benchmark_fn(fn, warmup=3, iters=10):
     for _ in range(warmup):
         fn()
 
-    synchronize_if_cuda()
     start = time.perf_counter()
     for _ in range(iters):
         fn()
-    synchronize_if_cuda()
     total = time.perf_counter() - start
     avg_time_ms = total / iters * 1000
     return avg_time_ms
@@ -442,10 +338,6 @@ def summarize_optimization_result(base_metrics, tuned_metrics):
 
 
 def format_optimization_report(summary, bottleneck, next_action):
-    # ==========================================
-    # TODO 3: 生成一段最小优化报告
-    # 提示: 把指标变化、瓶颈结论和下一步动作放在一起
-    # ==========================================
     header = "| 指标 | 变化 | 判断 |"
     sep = "| --- | --- | --- |"
     rows = [
@@ -458,15 +350,16 @@ def format_optimization_report(summary, bottleneck, next_action):
 
 
 def recommend_optimization_decision(summary, min_time_delta_ms=10.0, min_memory_delta_mb=512.0, min_throughput_delta=5.0):
-    strong_time_gain = summary['step_time_delta_ms'] >= min_time_delta_ms
+    strong_time_gain = summary['step_time_delta_ms'] >= min_time_delta_ms  # TODO 3a 对应挖空
     strong_memory_gain = summary['peak_mem_delta_mb'] >= min_memory_delta_mb
     strong_throughput_gain = summary['throughput_delta'] >= min_throughput_delta
     positive_memory_gain = summary['peak_mem_delta_mb'] > 0
     positive_throughput_gain = summary['throughput_delta'] > 0
-    if strong_time_gain and strong_throughput_gain:
+    positive_resource_gain = positive_memory_gain or positive_throughput_gain  # TODO 3b 对应挖空
+    if strong_time_gain and (strong_memory_gain or strong_throughput_gain):
         decision = 'accept'
-        reason = '时间与吞吐改善都达标，当前优化值得保留。'
-    elif strong_time_gain and (positive_memory_gain or positive_throughput_gain):
+        reason = '时间达到阈值，且显存或吞吐至少一项达到阈值，当前优化值得保留。'
+    elif strong_time_gain and positive_resource_gain:
         decision = 'tune'
         reason = '时间改善成立，但资源或吞吐收益还不够稳，建议继续微调。'
     else:
@@ -478,7 +371,7 @@ def recommend_optimization_decision(summary, min_time_delta_ms=10.0, min_memory_
 
 ### 解析
 
-这一版题目区保留 `4` 个核心 TODO：测量、汇总、报告和轻量决策。这里不把 profiling 页做成重型项目审计器，而是让读者先掌握 `measure -> summarize -> report -> decide` 的最小项目闭环。
+这一版题目区保留 `3` 个核心 TODO：测量、汇总和轻量决策。报告格式由给定实现展示，学习者把精力放在 `measure -> summarize -> decide` 的可复用逻辑上。
 
 - **这一题要解决什么**：把 profiling 优化流程压缩成一个最小可复用模板，保证每次优化都能留下可比较的指标和明确结论。
 - **为什么这样做**：性能优化不能只看单次运行结果，必须固定 baseline、测量同一组指标，并把改动前后的差异收敛成项目报告。
@@ -490,7 +383,7 @@ def recommend_optimization_decision(summary, min_time_delta_ms=10.0, min_memory_
 - **warmup**：先运行若干轮，不计入统计，避免初始化、缓存和调度抖动影响结果。
 - **计时范围**：只把正式测量的 `iters` 轮放进 `start / total` 之间。
 - **单位统一**：返回 ms，而不是秒，方便和 step time、latency 表格放在一起比较。
-- **工程注意**：答案代码在 CUDA 可用时会在计时前后调用 `torch.cuda.synchronize()`；CPU 环境下自动跳过同步。
+- **工程注意**：本题区只测 CPU 函数耗时；GPU 同步、CUDA trace 和峰值显存由 Step 5 独立处理。
 
 **2. TODO 2 (summarize_optimization_result)**
 
@@ -499,16 +392,14 @@ def recommend_optimization_decision(summary, min_time_delta_ms=10.0, min_memory_
 - **throughput 差值**：`tuned - baseline`，正数表示 tuned 吞吐更高。
 - **布尔判断**：`time_improved / memory_improved / throughput_improved` 把数值变化变成可读结论，方便项目报告直接引用。
 
-**3. TODO 3 (format_optimization_report)**
+**给定实现 (format_optimization_report)**
 
-- **表格部分**：把核心指标变化放到同一张 Markdown 表里，便于复盘和横向比较。
-- **瓶颈判断**：不要只输出数字，还要写清楚瓶颈来自哪里，例如数据加载、backward kernel、KV cache 或通信同步。
-- **下一步动作**：每轮优化结束都应该留下后续优先级，否则下一轮很容易重新从零开始定位。
+报告模板把指标变化、瓶颈判断和下一步动作放在同一处；学习者只需理解这些字段如何承接 Step 3 的结论。
 
-**4. TODO 4 (recommend_optimization_decision)**
+**3. TODO 3 (recommend_optimization_decision)**
 
-- **accept**：时间改善和吞吐改善都达标，说明这次改动对端到端目标确实有帮助。
-- **tune**：时间改善成立，但显存或吞吐收益还不够稳，说明这次优化方向可能对，但还没到可直接保留的程度。
+- **accept**：时间达到阈值，且显存或吞吐至少一项达到阈值，说明这次改动对端到端目标形成了明确收益。
+- **tune**：时间有改善，且显存或吞吐至少一项为正收益，但尚未达到对应阈值。
 - **reject**：没有形成稳定的端到端收益，应该回退或重新定位瓶颈，而不是继续堆优化开关。
 
 **项目化原则**
@@ -517,16 +408,65 @@ def recommend_optimization_decision(summary, min_time_delta_ms=10.0, min_memory_
 - **指标要成组出现**：只看变快不够，还要看显存、吞吐、loss / 精度或输出一致性。
 - **结论要回扣目标**：最终判断必须回答 Step 1 的问题：这次优化是否达成目标，是否值得保留。
 
-### Step 7（可选）：真实 GPU trace 采集
+### Step 5（GPU 可选实验）：采集真实 trace
 
-本 Step 使用 76 的 `seq_len=768` FP32 workload，实际运行 baseline / checkpoint 的短训练 step，并保存 `torch.profiler` 的 CPU/CUDA trace。默认关闭；没有 GPU 时不要运行。它只负责采集证据，最终报告仍由后面的收口代码生成。
+#### 5.1 环境、输入与 trace 计划
 
-![74 GPU trace 采集流程](../public/02_PyTorch_Algorithms/74_gpu_trace_collection.svg)
-<div align="center"><strong>trace 用于提供证据，瓶颈结论仍需人工解读和针对性复验。</strong></div>
+本实验固定 76 的训练 workload，只比较 baseline 与 checkpoint，观察 checkpoint 的额外重算是否解释了显存下降和时间增加。
 
-**可选的 MLA profiling 扩展：** 如果要验证 71 的 MLA / KV Cache 结构，应使用同一模型、输入长度和 backend，单独记录 prefill / decode、latent KV 读写、位置相关分量、kernel 时间和显存变化。71 负责回答“缓存表示如何变化”，74 负责回答“该表示在真实执行中带来什么时间与带宽代价”；当前训练 trace 代码不能仅通过替换模型名变成 MLA 推理 trace，因此没有对应 collector 时应标记为未采集。
+| 实验要素 | 固定或设置的内容 | 形成的证据 |
+|:---|:---|:---|
+| 实验问题 | checkpoint 是否用额外计算换取激活显存下降 | 可检验的瓶颈假设 |
+| 固定条件 | `Qwen/Qwen2.5-0.5B-Instruct`、`pressure`、FP32、batch=1、seq_len=768、AdamW、warmup=2、iters=5 | 与 76 对齐的 workload |
+| 对照变量 | baseline 对比 checkpoint；只改变激活值保存 / 重算策略 | 可归因的 trace 差异 |
+| 采集范围 | 相同 `ProfilerStep` 区间，采集 CPU/CUDA trace | baseline / checkpoint 时间线 |
+| 观察指标 | forward、backward、optimizer、重算、等待、step time、吞吐和峰值显存 | 瓶颈假设与复验依据 |
+| 输出文件 | trace 路径、汇总指标、证据等级和下一步动作 | `74_real_gpu_profile.json` |
+
+![GPU trace 采集与证据复验流程](../public/02_PyTorch_Algorithms/74_gpu_trace_collection.svg)
+#### 5.2 环境预检
+先检查项目路径、Python、PyTorch 和 CUDA。这个单元只报告环境状态，不安装依赖、不加载模型；预检未通过时，先根据输出修复环境。
 
 ```python
+"""GPU profiling 的独立环境预检：只确认路径和运行时，不安装依赖、不加载模型。"""
+# 只检查项目路径、Python、PyTorch 和 CUDA；不安装依赖、不加载模型。
+from pathlib import Path
+import os
+import subprocess
+import sys
+
+GPU_PROJECT_ROOT = Path(os.environ.get('LLM_ALGO_PROJECT_ROOT', Path.cwd())).expanduser().resolve()
+if not (GPU_PROJECT_ROOT / 'tools/project_runtime.py').is_file():
+    colab_root = Path('/content/llm-algo-leetcode')
+    if (colab_root / 'tools/project_runtime.py').is_file():
+        GPU_PROJECT_ROOT = colab_root
+    elif Path('/content').is_dir() and not colab_root.exists():
+        subprocess.run(['git', 'clone', 'https://github.com/datawhalechina/llm-algo-leetcode.git', str(colab_root)], check=True)
+        GPU_PROJECT_ROOT = colab_root
+if not (GPU_PROJECT_ROOT / 'tools/project_runtime.py').is_file():
+    raise RuntimeError('找不到项目根目录：请设置 LLM_ALGO_PROJECT_ROOT，或先把仓库放到 /content/llm-algo-leetcode。')
+os.chdir(GPU_PROJECT_ROOT)
+if str(GPU_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(GPU_PROJECT_ROOT))
+print(f'project_root: {GPU_PROJECT_ROOT}')
+try:
+    import torch
+except ImportError:
+    print('未检测到 PyTorch；请按维护文档安装匹配的 torch CUDA wheel 后再运行 profiling。')
+else:
+    print(f'torch: {torch.__version__}')
+    print(f'cuda_build: {torch.version.cuda}; cuda_available: {torch.cuda.is_available()}')
+    if torch.cuda.is_available():
+        props = torch.cuda.get_device_properties(0)
+        print(f'gpu: {props.name}; memory_gib: {props.total_memory / 2**30:.1f}')
+
+```
+
+#### 5.3 配置 trace 条件
+只修改 profiling 开关、采集策略和轮数；模型、输入、训练条件和指标计算逻辑保持不变。先采集最小 baseline / checkpoint 对照，再按需要扩展其他策略。
+
+```python
+# 固定 workload，只修改 profiling 开关、采集策略和采集次数。
 from pathlib import Path
 
 RUN_REAL_PROFILE = False  # 默认先完成 CPU 报告收口；真实 GPU 采集时显式改为 True。
@@ -545,14 +485,18 @@ if not PROFILE_STRATEGIES or len(PROFILE_STRATEGIES) != len(set(PROFILE_STRATEGI
     raise ValueError('PROFILE_STRATEGIES 不能为空且不能包含重复策略。')
 if any(strategy not in {'baseline', 'checkpoint', 'offload', 'hybrid'} for strategy in PROFILE_STRATEGIES):
     raise ValueError('PROFILE_STRATEGIES 只能使用 baseline/checkpoint/offload/hybrid。')
+PROFILE_73_RELATIVE_PATH = Path('benchmarks/results/73_real_gpu_training.json')
 PROFILE_76_RELATIVE_PATH = Path('benchmarks/results/76_real_gpu_memory.json')
 PROFILE_TRACE_RELATIVE_DIR = Path('benchmarks/results/74_profile')
 PROFILE_OUTPUT_RELATIVE_PATH = Path('benchmarks/results/74_real_gpu_profile.json')
 
 ```
 
+#### 5.4 执行 trace 采集
+运行 cell 会按当前配置完成 baseline / candidate 的短训练并保存 trace 与 JSON。不同策略使用相同 `ProfilerStep` 区间；trace 用于提出瓶颈假设，不直接等同于最终结论。
 
 ```python
+# 按配置采集原始 trace 和 JSON；本 cell 不修改判定规则。
 import gc
 import json
 import os
@@ -605,12 +549,22 @@ if RUN_REAL_PROFILE:
     if not preflight['ready']:
         raise RuntimeError('环境预检未通过，请先按 next_actions 修复；没有开始 profiling。')
 
+    baseline_73_path = project_root / PROFILE_73_RELATIVE_PATH
+    if not baseline_73_path.exists():
+        raise FileNotFoundError(f'找不到 73 baseline：{baseline_73_path}')
+    baseline_73 = json.loads(baseline_73_path.read_text(encoding='utf-8'))
+    baseline_73_config = baseline_73.get('config', {})
     upstream_path = project_root / PROFILE_76_RELATIVE_PATH
     if not upstream_path.exists():
         raise FileNotFoundError(f'找不到 76 结果：{upstream_path}')
     upstream = json.loads(upstream_path.read_text(encoding='utf-8'))
     upstream_config = upstream.get('config', {})
+    missing_repeats = [item.get('name', '<unknown>') for item in upstream.get('candidates', []) if len(item.get('runs', [])) < 3]
+    if missing_repeats:
+        raise ValueError(f'74 需要 76 先完成每个候选的 3 次重复运行：{missing_repeats}')
     for key, value in {'model_id': PROFILE_MODEL_ID, 'batch_size': PROFILE_BATCH_SIZE, 'seq_len': PROFILE_SEQ_LEN}.items():
+        if baseline_73_config.get(key) != value:
+            raise ValueError(f'74 与 73 的 profiling workload 不一致：{key}={baseline_73_config.get(key)} != {value}')
         if upstream_config.get(key) != value:
             raise ValueError(f'74 与 76 的 profiling workload 不一致：{key}={upstream_config.get(key)} != {value}')
 
@@ -662,7 +616,7 @@ if RUN_REAL_PROFILE:
     report = {
         'task': 'task3_training_memory_optimization', 'stage': 'real_profiler_trace',
         'config': {'model_id': PROFILE_MODEL_ID, 'batch_size': PROFILE_BATCH_SIZE, 'seq_len': PROFILE_SEQ_LEN, 'dtype': 'float32', 'strategies': PROFILE_STRATEGIES, 'warmup': PROFILE_WARMUP, 'iters': PROFILE_ITERS},
-        'source_76': str(upstream_path.relative_to(project_root)), 'trace_root': str(trace_root.relative_to(project_root)),
+        'source_73': str(baseline_73_path.relative_to(project_root)), 'source_76': str(upstream_path.relative_to(project_root)), 'trace_root': str(trace_root.relative_to(project_root)),
         'candidates': candidates, 'profile': {'tool': 'torch.profiler', 'activities': ['CPU', 'CUDA'], 'status': 'collected', 'trace_files_by_strategy': {item['name']: [str(path.relative_to(project_root)) for path in sorted((trace_root / item['name']).glob('*.pt.trace.json'))] for item in candidates}},
     }
     report['experiment'] = standard_experiment_config({
@@ -683,9 +637,9 @@ else:
 
 ```
 
-### Step 8（可选）：读取 73 / 76 / 75 并生成收口报告
+#### 5.5 读取结果与记录证据
 
-这一单元读取已经保存的上游 JSON 和真实 profiler 报告，检查项目证据是否齐全，并生成 `benchmarks/results/74_profiling_optimization.json`。如果没有真实 profiling 证据，报告会明确标记为 `tune`，不会把 75 的局部预算结论直接升级为端到端结论。
+这一单元读取已经保存的上游 JSON 和真实 profiler 报告，核对实测环境、trace 文件和主线结果，最后生成 `benchmarks/results/74_profiling_optimization.json`。时间线观察、证据解释和复验动作放在 5.6；如果没有真实 profiling 证据，报告会明确标记为 `tune`。
 
 ```python
 import json
@@ -855,33 +809,62 @@ if close_report_path.is_file():
 
 ```
 
-## 本次真实 GPU 结果
+**实测环境与统一口径**
 
-实验条件：`Qwen/Qwen2.5-0.5B-Instruct`、RTX 5070 Ti Laptop GPU、FP32、`batch_size=1`、`seq_len=768`、`warmup=2`、`iters=5`、AdamW。74 节只对 baseline 和 checkpoint 采集 trace；offload / hybrid 的策略指标见 76 节。
+74 使用与 73、76 相同的本地 GPU 环境；只对 baseline 和 checkpoint 采集 trace，offload / hybrid 的策略指标见 76 节。
+
+| 统一条件 | 实际配置 |
+|:---|:---|
+| 系统 / GPU | Linux `6.8.0-138-generic`、RTX 5070 Ti Laptop GPU / 12227 MiB |
+| 驱动 | `570.211.01` |
+| PyTorch / CUDA | `2.11.0+cu128` / `12.8` |
+| 模型与 revision | `Qwen/Qwen2.5-0.5B-Instruct` / 待填写 |
+| dtype / optimizer | FP32 / AdamW |
+| batch / seq_len | `1 / 768` |
+| warmup / iters / profiler repeats | `2 / 5 / 1` |
+| trace 输出 / evidence level | `benchmarks/results/74_profile/` / `profiling_trace` 或 `not_collected` |
+
+**主线结果与 trace 状态**
+
+下表记录 baseline 与 checkpoint 在同一 workload 下的实测结果，以及对应 trace 是否已经生成。
+
 
 | 策略 | 单步耗时（ms） | 吞吐（samples/s） | 峰值显存（MB） | reserved（MB） | last loss | Trace |
 | --- | ---: | ---: | ---: | ---: | ---: | --- |
 | baseline | 690.375 | 1.448 | 9782.73 | 10750.00 | 11.477463 | 已采集 |
 | checkpoint | 825.059 | 1.212 | 9450.75 | 10896.00 | 11.477463 | 已采集 |
 
+#### 5.6 解释与决策
+
+先用固定 workload 的结果判断显存与时间的交换，再用 Chrome trace 解释时间差来自重算、等待还是同步。Profiler 会引入额外开销，因此表中耗时只用于相对比较；最终性能以关闭 profiler 的重复测量为准。本次 trace 仅覆盖 baseline 与 checkpoint，offload / hybrid 的结论引用 76 节结果，不在本节推断。
+
+**对照结果**
+
+下表中的数字只对应本次固定模型、输入和训练条件；当前决策还需要结合后面的时间线证据和改动复验。
+
 | 对比项 | 结果 |
 | --- | --- |
 | 峰值显存 | checkpoint 减少 331.98 MB，约 3.39% |
 | 单步耗时 | 增加 134.68 ms，约 19.51% |
 | 吞吐 | 从 1.448 降至 1.212 samples/s，约下降 16.30% |
-| 当前决策 | `tune`：已取得 trace，但还没有完成瓶颈解释和改动后的复验 |
+| 当前决策 | `tune`：已取得 trace，仍需完成瓶颈解释和改动复验 |
 
-这组数据支持“checkpoint 用重计算换显存”的结论，但不支持“checkpoint 已经是最终最优方案”。Profiler 会增加额外开销，因此表中的耗时用于观察相对变化，最终性能仍以 73 / 76 的非 profiler 测量为准。
+**Profiler 证据记录**
 
-## 真实 trace 怎么看
+使用 Perfetto 打开 baseline 和 checkpoint 的 `torch.profiler` Chrome trace，在相同 `ProfilerStep` 区间观察 forward、backward、optimizer step、重算和等待。时间占比只能作为线索，不能单独证明瓶颈；需要把观察到的现象、支持的假设和下一次复验动作填入下表。
 
-74 节当前生成的是 `torch.profiler` 的 Chrome trace，不是 TensorBoard event 文件。可以打开 <https://ui.perfetto.dev>，分别加载：
+| 策略 | trace 路径 | 关键观察 | 支持的假设 | 仍需复验 |
+|:---|:---|:---|:---|:---|
+| baseline | `benchmarks/results/74_profile/baseline/*.pt.trace.json` | 已采集；填写 forward / backward / optimizer 占比 | 作为时间线参照 | 填写主要等待或热点 |
+| checkpoint | `benchmarks/results/74_profile/checkpoint/*.pt.trace.json` | 已采集；填写 backward 重算活动 | 是否用计算换显存 | 用同一 workload 复验改动 |
+| offload / hybrid | 由 76 决定是否扩展 | 当前未采集 | 只能引用 76 的指标 | 明确 trace 策略后再采集 |
 
-- `benchmarks/results/74_profile/baseline/*.pt.trace.json`
-- `benchmarks/results/74_profile/checkpoint/*.pt.trace.json`
+---
+## 相关阅读
 
-每次只看一个文件，并在相同的 `ProfilerStep` 区间比较。先定位 forward、backward、optimizer step，再观察 checkpoint 是否在 backward 中增加了重复计算，以及 GPU 时间线上是否出现等待空洞。
+以下资料按“profiling 基础 → profiler 工具”排列，用于支持本节的 trace 阅读和证据解释。73、75、76 等项目入口已放在前置阅读中。
 
-`Command Buffer Full`、`cudaLaunchKernel` 和 CUDA 总时间可能包含异步活动或重叠，不能仅凭表格中的百分比认定为瓶颈；需要结合时间线和相同采集配置判断。Perfetto 的 slice overlap 提示通常只影响显示布局，不代表 trace 数据丢失。
-
-本次结果支持的结论是：checkpoint 用约 `331.98 MB` 峰值显存下降换取约 `134.68 ms` 的单步时间代价。若要把 `tune` 升级为 `accept`，还需要针对时间线中确认的瓶颈验证一次改动，并重新比较相同 workload 的时间、吞吐、显存和质量。
+- [PyTorch Profiler 官方文档](https://pytorch.org/docs/stable/profiler.html)
+- [Perfetto 官方文档](https://perfetto.dev/docs/)
+- [Nsight Systems 官方文档](https://docs.nvidia.com/nsight-systems/)
+- [13. Profiling and Bottleneck Analysis | 性能分析与瓶颈定位](../01_Hardware_Math_and_Systems/13_Profiling_and_Bottleneck_Analysis.md)

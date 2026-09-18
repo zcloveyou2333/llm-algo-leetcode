@@ -59,7 +59,7 @@ Profiling 和 Benchmark 解决不同问题：Profiling 用来发现和解释瓶�
 | Task3 | 用 73、76、75 完成训练侧测量和预算决策 |
 | Task4 | 处理 KV Cache、分页、复用和推理容量 |
 | Task5 | 通过量化改变权重或 Cache 的容量 |
-| Task6 | 用分布式切分和 Profiling 完成系统收口 |
+| Task6 | 通过 [07 分布式显存与系统扩展](./07_distributed_memory_and_system_extension.md) 了解分布式切分，再用 79–81 和 Profiling 完成系统收口 |
 
 形成结论时按以下顺序检查：
 
@@ -72,7 +72,7 @@ Profiling 和 Benchmark 解决不同问题：Profiling 用来发现和解释瓶�
 
 ## 阅读入口
 
-- 想按顺序学习机制：回到 [显存优化入口](./intro.md)，再读 [01–06 正文](./01_vram_ledger_and_metrics.md)。
+- 想按顺序学习机制：回到 [显存优化入口](./intro.md)，再按 Task 选择 [01–07 正文](./01_vram_ledger_and_metrics.md)。
 - 想沿一个问题完整走一遍：阅读[显存优化深入阅读](./walkthrough.md)。
 - 想采集真实数据：进入 73–76、66–71 或 79–81 对应的项目页，并遵守各自环境与报告要求。
 - 如果问题首先是请求速度、服务调度或版本治理，应转到[推理优化](../inference_optimization/intro.md)，而不是把所有问题都归入显存优化。

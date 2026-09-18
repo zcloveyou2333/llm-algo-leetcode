@@ -21,6 +21,25 @@
 | 运行态量化 | 激活或计算张量 | `25`、`41` | FP8、低精度 activation | 计算和带宽成为瓶颈，且硬件 / kernel 支持目标 dtype |
 | Cache 量化 | KV Cache | `41` | FP8 KV Cache、专用 Cache 量化 | 长上下文或高并发时 Cache 预算不足 |
 
+量化部署的验证链不能在“模型成功加载”处结束。只有当 artifact、loader、kernel 和服务 workload 都对上，显存或速度变化才有部署意义；如果只完成了格式转换，结论仍属于装载可行性，而不是性能收益。
+
+| 验证层 | 需要确认什么 | 典型结果 |
+|:---|:---|:---|
+| Artifact | 量化对象、bit、粒度、校准版本和 revision | 权重或 Cache 的格式可追溯 |
+| Loader / backend | backend 能否正确读取并映射目标 dtype | 成功加载、无隐式回退 |
+| Kernel 路径 | 实际执行的是目标低比特或 FP8 kernel | kernel 名称、dtype、执行路径 |
+| 服务 workload | 固定 prompt、输出长度、并发和 batch 后的表现 | TTFT、TPOT、throughput、P99、peak memory |
+| 质量门槛 | 量化前后的任务质量是否仍可接受 | accept、tune 或 reject |
+
+量化回归要把“数值接近”与“任务可用”分开检查。权重误差较小，不代表长上下文、结构化输出或工具调用一定保持稳定；因此质量样例应覆盖目标服务真正关心的输入，而不是只测一组短文本。
+
+| 回归层 | 建议检查 | 结论依据 |
+|:---|:---|:---|
+| 数值层 | 输出形状、非有限值、logits 或概率差异 | 是否存在明显数值异常 |
+| 生成层 | 固定 Prompt、停止条件、输出长度和重复率 | Decode 行为是否改变 |
+| 任务层 | 目标任务准确率、结构化格式或工具调用成功率 | 质量是否满足服务门槛 |
+| 服务层 | TTFT、TPOT、throughput、P99、peak memory | 资源收益是否抵消质量或尾延迟代价 |
+
 ## 判断框架
 
 本节承接 `04` 的资源边界，先沿 `21 → 25 → 40 → 41` 理解量化机制，再用 `66` 的浮点模型结果作为 baseline，最后通过 [67 Quantized Inference and Deployment](../../02_PyTorch_Algorithms/67_Quantized_Inference_and_Deployment.md) 验证真实部署。阅读下表时，先固定 bit 数、量化粒度、校准数据、目标 dtype、backend、硬件和质量指标，再根据现象选择下一步动作。

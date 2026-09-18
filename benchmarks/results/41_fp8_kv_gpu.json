@@ -1,0 +1,29 @@
+{
+  "stage": "environment_preflight",
+  "run_mode": "dry_run",
+  "runtime": {
+    "python": "3.11.5",
+    "torch": "2.5.1+cu121",
+    "cuda": "12.1",
+    "cuda_available": false,
+    "device": "cpu"
+  },
+  "config": {
+    "shape": [
+      1,
+      16,
+      512,
+      64
+    ],
+    "kv_group_size": 32,
+    "warmup": 5,
+    "iters": 20,
+    "seed": 42,
+    "model_id": "Qwen/Qwen2.5-0.5B-Instruct"
+  },
+  "evidence_level": "environment_preflight",
+  "decision": {
+    "decision": "ready_to_measure",
+    "reason": "仅完成环境与配置检查，尚未运行 GPU KV Cache 测量。"
+  }
+}

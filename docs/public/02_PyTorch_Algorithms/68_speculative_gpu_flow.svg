@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="540" viewBox="0 0 1680 540">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,3 L0,6 Z" fill="#64748b"/>
+    </marker>
+    <style>
+      .title{font:700 28px sans-serif;fill:#0f172a}
+      .group{font:700 18px sans-serif;fill:#334155}
+      .label{font:700 17px sans-serif;fill:#0f172a}
+      .text{font:14px sans-serif;fill:#334155}
+      .box{stroke:#94a3b8;stroke-width:2;rx:14}
+      .metric{stroke:#cbd5e1;stroke-width:1.5;rx:9}
+      .flow{stroke:#64748b;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+
+  <rect width="1680" height="540" fill="#f8fafc"/>
+  <text x="840" y="42" text-anchor="middle" class="title">GPU speculative benchmark：从实验契约到证据记录</text>
+
+  <rect x="30" y="105" width="285" height="300" class="box" fill="#e0f2fe"/>
+  <text x="172" y="143" text-anchor="middle" class="group">环境与输入</text>
+  <rect x="60" y="180" width="225" height="78" class="metric" fill="#ffffff"/>
+  <text x="172" y="212" text-anchor="middle" class="label">H0 / H1</text>
+  <text x="172" y="237" text-anchor="middle" class="text">GPU、显存、驱动、CUDA</text>
+  <rect x="60" y="285" width="225" height="78" class="metric" fill="#ffffff"/>
+  <text x="172" y="317" text-anchor="middle" class="label">target + draft</text>
+  <text x="172" y="342" text-anchor="middle" class="text">模型、dtype、生成长度</text>
+
+  <rect x="370" y="105" width="300" height="300" class="box" fill="#fef3c7"/>
+  <text x="520" y="143" text-anchor="middle" class="group">固定 workload</text>
+  <rect x="400" y="180" width="240" height="78" class="metric" fill="#ffffff"/>
+  <text x="520" y="212" text-anchor="middle" class="label">请求与采样</text>
+  <text x="520" y="237" text-anchor="middle" class="text">prompt、temperature、质量门槛</text>
+  <rect x="400" y="285" width="240" height="78" class="metric" fill="#ffffff"/>
+  <text x="520" y="317" text-anchor="middle" class="label">重复测量</text>
+  <text x="520" y="342" text-anchor="middle" class="text">warmup、repeats、seed</text>
+
+  <rect x="725" y="105" width="360" height="300" class="box" fill="#eef8f1"/>
+  <text x="905" y="143" text-anchor="middle" class="group">统一实验分组</text>
+  <rect x="755" y="175" width="130" height="78" class="metric" fill="#ffffff"/>
+  <text x="820" y="207" text-anchor="middle" class="label">G0</text>
+  <text x="820" y="232" text-anchor="middle" class="text">target-only</text>
+  <rect x="925" y="175" width="130" height="78" class="metric" fill="#ffffff"/>
+  <text x="990" y="207" text-anchor="middle" class="label">G1</text>
+  <text x="990" y="232" text-anchor="middle" class="text">speculative</text>
+  <rect x="840" y="285" width="130" height="78" class="metric" fill="#ffffff"/>
+  <text x="905" y="317" text-anchor="middle" class="label">G2</text>
+  <text x="905" y="342" text-anchor="middle" class="text">单变量对照</text>
+  <path d="M885 214 H920" class="flow"/>
+  <path d="M820 253 V275 H900 V280" class="flow"/>
+  <path d="M990 253 V275 H910 V280" class="flow"/>
+
+  <rect x="1140" y="105" width="245" height="300" class="box" fill="#fff4e5"/>
+  <text x="1262" y="143" text-anchor="middle" class="group">统一证据</text>
+  <rect x="1170" y="180" width="185" height="78" class="metric" fill="#ffffff"/>
+  <text x="1262" y="212" text-anchor="middle" class="label">机制证据</text>
+  <text x="1262" y="237" text-anchor="middle" class="text">acceptance / verify cost</text>
+  <rect x="1170" y="285" width="185" height="78" class="metric" fill="#ffffff"/>
+  <text x="1262" y="317" text-anchor="middle" class="label">服务证据</text>
+  <text x="1262" y="342" text-anchor="middle" class="text">TTFT / TPOT / quality</text>
+
+  <rect x="1440" y="180" width="205" height="150" class="box" fill="#f0e8ff"/>
+  <text x="1542" y="218" text-anchor="middle" class="label">JSON 报告</text>
+  <text x="1542" y="248" text-anchor="middle" class="text">配置与原始结果</text>
+  <text x="1542" y="274" text-anchor="middle" class="text">evidence level</text>
+  <text x="1542" y="300" text-anchor="middle" class="text">decision</text>
+
+  <path d="M315 219 H365" class="flow"/>
+  <path d="M670 219 H700 V219 H720" class="flow"/>
+  <path d="M1085 219 H1115 V219 H1135" class="flow"/>
+  <path d="M1385 255 H1435" class="flow"/>
+</svg>

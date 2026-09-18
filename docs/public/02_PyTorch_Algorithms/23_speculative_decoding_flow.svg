@@ -1,59 +1,61 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 520" role="img" aria-labelledby="title desc">
-  <title id="title">推测解码流程</title>
-  <desc id="desc">草稿模型提出候选 token，目标模型逐个验证，并根据结果接受或拒绝。</desc>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="650" viewBox="0 0 1440 650" role="img" aria-labelledby="title desc">
+  <title id="title">投机解码的一轮机制</title>
+  <desc id="desc">一轮投机解码从候选提议开始，经目标模型验证，最后根据验证结果更新生成状态。</desc>
   <defs>
-    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
-      <stop offset="0%" stop-color="#f8fafc"/>
-      <stop offset="100%" stop-color="#fdf2f8"/>
-    </linearGradient>
-    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
-      <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
-    </marker>
-    <style>
-      .title { font: 700 30px "Inter", "Noto Sans SC", sans-serif; fill: #0f172a; }
-      .sub { font: 500 16px "Inter", "Noto Sans SC", sans-serif; fill: #475569; }
-      .label { font: 700 18px "Inter", "Noto Sans SC", sans-serif; fill: #111827; }
-      .small { font: 500 14px "Inter", "Noto Sans SC", sans-serif; fill: #334155; }
-      .box { fill: #ffffff; stroke-width: 3; rx: 16; ry: 16; }
-      .arrow { stroke: #475569; stroke-width: 4; fill: none; marker-end: url(#arrow); }
-      .accept { stroke: #16a34a; stroke-width: 4; fill: none; marker-end: url(#arrow); }
-      .reject { stroke: #ef4444; stroke-width: 4; fill: none; marker-end: url(#arrow); }
-    </style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6.5" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#475569"/></marker>
+    <style>text{font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;fill:#172033}.title{font-size:30px;font-weight:700}.sub{font-size:16px;fill:#475569}.group{font-size:18px;font-weight:700;fill:#334155}.label{font-size:17px;font-weight:700}.small{font-size:13px;fill:#475569}.panel{stroke-width:2;rx:20;ry:20}.node{stroke-width:2;rx:14;ry:14}.flow{stroke:#475569;stroke-width:3;stroke-linecap:round;fill:none;marker-end:url(#arrow)}.branch{stroke:#94a3b8;stroke-width:3;stroke-linecap:round;fill:none}</style>
   </defs>
-  <rect width="1660" height="700" fill="url(#bg)"/>
-  <text x="64" y="66" class="title">推测解码：先提议，再验证</text>
-  <text x="64" y="96" class="sub">草稿模型先提出多个候选，目标模型再逐个判断是否接受。</text>
+  <rect width="1440" height="650" fill="#f8fafc"/>
+  <text x="58" y="55" class="title">投机解码：一轮如何推进</text>
+  <text x="58" y="86" class="sub">草稿模型提出候选，目标模型集中验证，验证结果决定本轮保留哪些 token。</text>
 
-  <rect x="90" y="180" width="320" height="120" class="box" fill="#eff6ff" stroke="#3b82f6"/>
-  <text x="250" y="216" text-anchor="middle" class="label">草稿模型</text>
-  <text x="250" y="246" text-anchor="middle" class="small">提出 K 个 token</text>
-  <text x="250" y="272" text-anchor="middle" class="small">快速提议路径</text>
+  <rect x="525" y="115" width="390" height="88" class="node" fill="#e0f2fe" stroke="#38bdf8"/>
+  <text x="720" y="153" text-anchor="middle" class="label">一轮投机解码</text>
+  <text x="720" y="181" text-anchor="middle" class="small">当前上下文 → 候选 → 验证 → 状态更新</text>
 
-  <rect x="480" y="180" width="360" height="120" class="box" fill="#ecfccb" stroke="#65a30d"/>
-  <text x="660" y="216" text-anchor="middle" class="label">候选 token</text>
-  <text x="660" y="246" text-anchor="middle" class="small">x1, x2, x3, ... xK</text>
-  <text x="660" y="272" text-anchor="middle" class="small">x1, x2, ... xK</text>
+  <rect x="45" y="270" width="410" height="290" class="panel" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="75" y="307" text-anchor="start" class="group">候选提议</text>
+  <rect x="95" y="350" width="310" height="78" class="node" fill="#ffffff" stroke="#f59e0b"/>
+  <text x="250" y="382" text-anchor="middle" class="label">草稿模型</text>
+  <text x="250" y="407" text-anchor="middle" class="small">提出连续 token 与草稿概率</text>
+  <rect x="95" y="455" width="310" height="70" class="node" fill="#ffffff" stroke="#f59e0b"/>
+  <text x="250" y="484" text-anchor="middle" class="label">候选序列</text>
+  <text x="250" y="507" text-anchor="middle" class="small">长度 K，按位置排列</text>
+  <path d="M250 428V455" class="flow"/>
 
-  <rect x="910" y="180" width="320" height="120" class="box" fill="#f5f3ff" stroke="#8b5cf6"/>
-  <text x="1070" y="216" text-anchor="middle" class="label">目标模型</text>
-  <text x="1070" y="246" text-anchor="middle" class="small">验证每个候选</text>
-  <text x="1070" y="272" text-anchor="middle" class="small">最终正确性由此决定</text>
+  <rect x="515" y="270" width="410" height="290" class="panel" fill="#eef2ff" stroke="#818cf8"/>
+  <text x="545" y="307" text-anchor="start" class="group">目标验证</text>
+  <rect x="565" y="350" width="310" height="78" class="node" fill="#ffffff" stroke="#6366f1"/>
+  <text x="720" y="382" text-anchor="middle" class="label">目标模型</text>
+  <text x="720" y="407" text-anchor="middle" class="small">一次计算多个位置的概率</text>
+  <rect x="565" y="455" width="310" height="70" class="node" fill="#ffffff" stroke="#6366f1"/>
+  <text x="720" y="484" text-anchor="middle" class="label">按位置对齐</text>
+  <text x="720" y="507" text-anchor="middle" class="small">比较目标概率与草稿概率</text>
+  <path d="M720 428V455" class="flow"/>
 
-  <rect x="1280" y="180" width="290" height="120" class="box" fill="#fff1f2" stroke="#db2777"/>
-  <text x="1425" y="216" text-anchor="middle" class="label">接受 / 拒绝</text>
-  <text x="1425" y="246" text-anchor="middle" class="small">继续或停止</text>
-  <text x="1425" y="272" text-anchor="middle" class="small">拒绝后提前回退</text>
+  <rect x="985" y="270" width="410" height="290" class="panel" fill="#ecfdf5" stroke="#86efac"/>
+  <text x="1015" y="307" text-anchor="start" class="group">状态更新</text>
+  <rect x="1090" y="350" width="200" height="54" class="node" fill="#ffffff" stroke="#94a3b8"/>
+  <text x="1190" y="384" text-anchor="middle" class="label">验证结果</text>
+  <rect x="1005" y="450" width="110" height="92" class="node" fill="#ffffff" stroke="#4ade80"/>
+  <text x="1060" y="480" text-anchor="middle" class="label">接受前缀</text>
+  <text x="1060" y="507" text-anchor="middle" class="small">仍有位置</text>
+  <text x="1060" y="528" text-anchor="middle" class="small">继续扫描</text>
+  <rect x="1135" y="450" width="110" height="92" class="node" fill="#ffffff" stroke="#fb7185"/>
+  <text x="1190" y="480" text-anchor="middle" class="label">首次拒绝</text>
+  <text x="1190" y="507" text-anchor="middle" class="small">residual</text>
+  <text x="1190" y="528" text-anchor="middle" class="small">修正 token</text>
+  <rect x="1265" y="450" width="110" height="92" class="node" fill="#ffffff" stroke="#22d3ee"/>
+  <text x="1320" y="480" text-anchor="middle" class="label">全部接受</text>
+  <text x="1320" y="507" text-anchor="middle" class="small">bonus</text>
+  <text x="1320" y="528" text-anchor="middle" class="small">token</text>
+  <path d="M1190 404V425M1060 425H1320" class="branch"/>
+  <path d="M1060 425V450" class="flow"/>
+  <path d="M1190 425V450" class="flow"/>
+  <path d="M1320 425V450" class="flow"/>
 
-  <path d="M 410 240 L 480 240" class="arrow"/>
-  <path d="M 840 240 L 910 240" class="arrow"/>
-  <path d="M 1230 240 L 1280 240" class="arrow"/>
-
-  <path d="M 1070 300 C 1070 370 660 370 660 300" class="accept"/>
-  <path d="M 1070 300 C 1070 430 1425 430 1425 300" class="reject"/>
-
-  <rect x="90" y="360" width="1470" height="120" class="box" fill="#ffffff" stroke="#cbd5e1"/>
-  <text x="120" y="398" class="label">验证循环</text>
-  <text x="120" y="432" class="small">按从左到右的顺序验证，保留连续通过的前缀，在首次拒绝处停止。</text>
-  <text x="120" y="462" class="small">拒绝后面的草稿 token 被丢弃，生成回到目标模型路径。</text>
-
+  <path d="M720 203V235M250 235H1190" class="branch"/>
+  <path d="M250 235V350" class="flow"/>
+  <path d="M720 235V350" class="flow"/>
+  <path d="M1190 235V350" class="flow"/>
 </svg>

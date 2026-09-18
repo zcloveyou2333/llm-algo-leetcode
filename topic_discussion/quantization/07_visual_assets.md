@@ -19,13 +19,17 @@
 - low-bit training adaptation 图
 - weight-only compression 图
 - FP8 / KV cache quant 图
-- deployment / keep-tune-switch 决策图
+- deployment / accept-tune-reject 决策图
 
 ## 当前已落地图
 
 ### 00 量化路线总图
 
 ![量化路线：对象、时机、方法与部署证据](../../docs/public/topic_discussion/quantization/quantization_strategy_map.svg)
+
+### 00A 量化知识地图
+
+![量化知识地图：对象、误差、执行路径与证据](../../docs/public/topic_discussion/quantization/quantization_knowledge_map.svg)
 
 这张图作为专题入口主图，说明量化对象、处理时机、方法 / 格式和部署证据之间的关系。
 

@@ -1,29 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 700" role="img" aria-labelledby="title desc">
-  <title id="title">Activation Offload 生命周期</title>
-  <desc id="desc">激活在 GPU 上产生后被搬到 CPU，反向前再搬回 GPU，搬运和同步决定收益是否值得。</desc>
-  <defs>
-    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#f8fafc"/><stop offset="100%" stop-color="#ecfdf5"/></linearGradient>
-    <style>
-      .title { font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size: 30px; font-weight: 700; fill: #0f172a; }
-      .sub { font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size: 16px; font-weight: 500; fill: #475569; }
-      .label { font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size: 18px; font-weight: 700; fill: #111827; }
-      .small { font-family: "Noto Sans SC", "Microsoft YaHei", sans-serif; font-size: 14px; font-weight: 500; fill: #334155; }
-      .box { stroke-width: 3; rx: 18; ry: 18; }
-      .flow { stroke: #475569; stroke-width: 4; fill: none; marker-end: url(#arrow); }
-      .transfer { stroke: #0891b2; stroke-width: 4; stroke-dasharray: 10 7; fill: none; marker-end: url(#cyan); }
-    </style>
-    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#475569"/></marker>
-    <marker id="cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#0891b2"/></marker>
-  </defs>
-  <rect width="1600" height="700" fill="url(#bg)"/>
-  <text x="60" y="60" class="title">Activation Offload：用带宽换 GPU 显存</text>
-  <text x="60" y="90" class="sub">激活跨过 GPU–Host 边界暂存；真正的收益取决于释放了多少显存，以及搬运是否拖慢反向</text>
-  <rect x="90" y="230" width="250" height="110" class="box" fill="#eff6ff" stroke="#3b82f6"/><text x="215" y="275" text-anchor="middle" class="label">GPU 前向</text><text x="215" y="305" text-anchor="middle" class="small">产生激活 A</text>
-  <rect x="500" y="230" width="250" height="110" class="box" fill="#ecfeff" stroke="#0891b2"/><text x="625" y="275" text-anchor="middle" class="label">CPU / Host 暂存</text><text x="625" y="305" text-anchor="middle" class="small">释放 GPU 驻留空间</text>
-  <rect x="910" y="230" width="250" height="110" class="box" fill="#ecfccb" stroke="#65a30d"/><text x="1035" y="275" text-anchor="middle" class="label">反向前取回</text><text x="1035" y="305" text-anchor="middle" class="small">恢复激活 A</text>
-  <rect x="1320" y="230" width="220" height="110" class="box" fill="#fff1f2" stroke="#e11d48"/><text x="1430" y="275" text-anchor="middle" class="label">反向计算</text><text x="1430" y="305" text-anchor="middle" class="small">继续求梯度</text>
-  <path d="M340 285 L500 285" class="transfer"/><path d="M750 285 L910 285" class="transfer"/><path d="M1160 285 L1320 285" class="flow"/>
-  <text x="400" y="250" class="small" fill="#0e7490">搬出</text><text x="800" y="250" class="small" fill="#0e7490">搬回</text>
-  <text x="110" y="500" class="small">需要观察：激活大小、PCIe / NVLink 带宽、同步等待、峰值显存和 step time。</text>
-  <text x="110" y="540" class="small">适用判断：当激活显存是瓶颈且传输代价可接受时，offload 才可能优于重算。</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="560" viewBox="0 0 1400 560" role="img" aria-labelledby="title desc">
+<title id="title">Activation Offload 的设备间搬运路径</title><desc id="desc">激活在 GPU 上产生，暂时不用时搬到 CPU 或 Host，反向需要时再取回 GPU，搬运和同步决定收益。</desc>
+<defs><style>text{font-family:"Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif;fill:#172033}.title{font-size:29px;font-weight:700}.sub{font-size:15px;fill:#475569}.label{font-size:18px;font-weight:700}.small{font-size:13px;fill:#475569}.lane{stroke-width:2;rx:16}.node{fill:#fff;stroke-width:2;rx:12}.flow{stroke-width:3;fill:none}.arrow{fill:#475569}.transfer{stroke:#0891b2;stroke-width:3;stroke-dasharray:9 6;fill:none}.transferArrow{fill:#0891b2}</style></defs>
+<rect width="1400" height="560" fill="#f8fafc"/><text x="700" y="42" text-anchor="middle" class="title">Activation Offload：激活在设备之间移动</text><text x="700" y="70" text-anchor="middle" class="sub">GPU 负责计算，CPU / Host 暂存冷激活；反向时按需取回</text>
+<rect x="55" y="120" width="1290" height="150" class="lane" fill="#eff6ff" stroke="#93c5fd"/><text x="95" y="157" class="label">GPU：计算与有限驻留空间</text><rect x="120" y="185" width="250" height="58" class="node" fill="#fff" stroke="#3b82f6"/><text x="245" y="220" text-anchor="middle" class="label">前向产生 activation</text><rect x="1050" y="185" width="250" height="58" class="node" fill="#fff" stroke="#3b82f6"/><text x="1175" y="220" text-anchor="middle" class="label">反向取回并计算</text>
+<rect x="55" y="335" width="1290" height="150" class="lane" fill="#ecfeff" stroke="#67e8f9"/><text x="95" y="372" class="label">CPU / Host：暂存与带宽</text><rect x="575" y="400" width="250" height="58" class="node" fill="#fff" stroke="#0891b2"/><text x="700" y="435" text-anchor="middle" class="label">暂存冷 activation</text>
+<path d="M245 243V300H700V400" class="transfer"/><polygon points="700,406 694,394 706,394" class="transferArrow"/><path d="M700 400V300H1175V243" class="transfer"/><polygon points="1175,237 1169,249 1181,249" class="transferArrow"/>
+<text x="455" y="289" text-anchor="middle" class="small">搬出：释放 GPU 驻留空间</text><text x="945" y="289" text-anchor="middle" class="small">搬回：支付带宽与同步等待</text>
 </svg>

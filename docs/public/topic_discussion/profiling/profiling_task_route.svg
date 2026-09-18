@@ -7,19 +7,21 @@
   </defs>
   <rect width="1200" height="650" fill="#f7fafc"/>
   <text x="600" y="44" text-anchor="middle" class="title">性能分析学习路线：从现象到可复核行动</text>
-  <rect x="45" y="95" width="250" height="150" fill="#e6f6f5" class="box"/><text x="70" y="130" class="task">Task 1 · 测量前置</text><text x="70" y="170" class="text">调试、计时、固定输入</text><text x="70" y="202" class="text">建立可比较基线</text>
+  <rect x="45" y="95" width="250" height="150" fill="#e6f6f5" class="box"/><text x="70" y="130" class="task">Task 0 · 问题定义</text><text x="70" y="170" class="text">现象、指标与阶段</text><text x="70" y="202" class="text">写出可测量假设</text>
   <path d="M295 170 H330" class="line"/>
-  <rect x="330" y="95" width="250" height="150" fill="#e6f6f5" class="box"/><text x="355" y="130" class="task">Task 2 · 时间与 Trace</text><text x="355" y="170" class="text">阶段耗时与事件轨迹</text><text x="355" y="202" class="text">先定位热点位置</text>
+  <rect x="330" y="95" width="250" height="150" fill="#e6f6f5" class="box"/><text x="355" y="130" class="task">Task 1 · 建立基线</text><text x="355" y="170" class="text">固定 workload 与环境</text><text x="355" y="202" class="text">得到可比较结果</text>
   <path d="M580 170 H615" class="line"/>
-  <rect x="615" y="95" width="250" height="150" fill="#fff4e6" class="box"/><text x="640" y="130" class="task">Task 3 · 显存与状态</text><text x="640" y="170" class="text">时间线、驻留、峰值</text><text x="640" y="202" class="text">解释异常变化</text>
+  <rect x="615" y="95" width="250" height="150" fill="#e6f6f5" class="box"/><text x="640" y="130" class="task">Task 2 · 时间与 Trace</text><text x="640" y="170" class="text">阶段耗时与事件轨迹</text><text x="640" y="202" class="text">定位时间热点</text>
   <path d="M865 170 H900" class="line"/>
-  <rect x="900" y="95" width="255" height="150" fill="#fff4e6" class="box"/><text x="925" y="130" class="task">Task 4 · 通信与等待</text><text x="925" y="170" class="text">计算、内存、通信</text><text x="925" y="202" class="text">观察重叠与阻塞</text>
-  <path d="M1027 245 V300 H900" class="line"/>
-  <rect x="615" y="300" width="250" height="150" fill="#eef2ff" class="box"/><text x="640" y="335" class="task">Task 5 · Benchmark</text><text x="640" y="375" class="text">固定 workload 与指标</text><text x="640" y="407" class="text">回归与证据等级</text>
+  <rect x="900" y="95" width="255" height="150" fill="#fff4e6" class="box"/><text x="925" y="130" class="task">Task 3 · 显存与状态</text><text x="925" y="170" class="text">时间线、驻留、峰值</text><text x="925" y="202" class="text">解释异常变化</text>
+  <path d="M1027 245 V300" class="line"/>
+  <rect x="900" y="300" width="255" height="150" fill="#fff4e6" class="box"/><text x="925" y="335" class="task">Task 4 · 通信与等待</text><text x="925" y="375" class="text">collective、同步、拓扑</text><text x="925" y="407" class="text">观察重叠与阻塞</text>
+  <path d="M900 375 H865" class="line"/>
+  <rect x="615" y="300" width="250" height="150" fill="#eef2ff" class="box"/><text x="640" y="335" class="task">Task 5 · Benchmark</text><text x="640" y="375" class="text">固定指标与对照条件</text><text x="640" y="407" class="text">记录回归与波动</text>
   <path d="M615 375 H580" class="line"/>
-  <rect x="330" y="300" width="250" height="150" fill="#eef2ff" class="box"/><text x="355" y="335" class="task">Task 6 · 行动决策</text><text x="355" y="375" class="text">选择优化方向</text><text x="355" y="407" class="text">复测并保留结论</text>
+  <rect x="330" y="300" width="250" height="150" fill="#eef2ff" class="box"/><text x="355" y="335" class="task">Task 6 · 行动决策</text><text x="355" y="375" class="text">汇总证据与代价</text><text x="355" y="407" class="text">保留、取证或回退</text>
   <path d="M330 375 H295" class="line"/>
-  <rect x="45" y="300" width="250" height="150" fill="#f0f4f8" class="box"/><text x="70" y="335" class="task">项目出口</text><text x="70" y="375" class="text">74、79 及相关项目</text><text x="70" y="407" class="text">从 trace 回到 workload</text>
-  <path d="M170 450 V510 H1030 V450" class="line"/>
+  <rect x="45" y="300" width="250" height="150" fill="#f0f4f8" class="box"/><text x="70" y="335" class="task">项目验证</text><text x="70" y="375" class="text">训练、推理与多卡</text><text x="70" y="407" class="text">回到真实 workload</text>
+  <path d="M170 450 V510 H300" class="line"/>
   <rect x="300" y="510" width="600" height="75" fill="#ffffff" class="box"/><text x="600" y="542" text-anchor="middle" class="task">验证出口</text><text x="600" y="570" text-anchor="middle" class="small">现象 → 证据 → 归因 → 对照 → 回归 → 行动</text>
 </svg>

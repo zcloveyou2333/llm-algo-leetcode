@@ -30,7 +30,7 @@
 - [29. Tensor Parallelism Sim | Tensor 并行模拟](./29_Tensor_Parallelism_Sim.md)
 - [P1: 05. Communication Topologies | 通信拓扑与分布式基石](../01_Hardware_Math_and_Systems/05_Communication_Topologies.md)
 
-## 相关阅读
+## 相关项目入口
 
 **导语：** 完成并行策略 benchmark 后，用 80 继续检查 MoE 专家并行的通信与负载均衡；如果需要验证端到端收益，再交给 74 做 profiling 闭环。
 - [80. MoE Expert Parallel Benchmark | MoE 专家并行基准](./80_MoE_Expert_Parallel_Benchmark.md)
@@ -309,3 +309,15 @@ def format_parallel_report(strategy_name, summary, recommendation):
 - **一次比较一个策略维度**：不要同时改并行策略、batch size 和精度模式。
 - **指标必须成组解释**：显存下降但通信暴涨，未必是更好的方案。
 - **结论要能指导选型**：最终输出不只是数字，而是“当前资源条件下该选什么、为什么”。
+
+## 相关阅读
+
+以下资料按“并行训练机制 → 通信实现 → 多卡项目验证”排列，用于把本节的显存、吞吐和通信证据连接到真实多卡环境。
+
+- [Megatron-LM 论文：高效大规模 Transformer 训练](https://arxiv.org/abs/1909.08053)
+- [ZeRO 论文：Memory Optimizations Toward Training Trillion Parameter Models](https://arxiv.org/abs/1910.02054)
+- [PyTorch Distributed 官方文档](https://pytorch.org/docs/stable/distributed.html)
+- [NCCL 官方仓库](https://github.com/NVIDIA/nccl)
+- [80 MoE 专家并行基准](./80_MoE_Expert_Parallel_Benchmark.md)
+- [81 分布式推理项目](./81_Distributed_Inference_Project.md)
+- [74 Profiling 驱动的端到端优化](./74_Profiling_Driven_End_to_End_Optimization.md)

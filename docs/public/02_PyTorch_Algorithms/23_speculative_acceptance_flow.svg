@@ -1,13 +1,43 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 560" role="img" aria-labelledby="title desc">
-<title id="title">投机解码的接受与修正路径</title><desc id="desc">草稿模型提出 token，目标模型逐个验证；接受、拒绝修正和全部接受 bonus token 是三种结果。</desc>
-<defs><linearGradient id="bg" x1="0" x2="1"><stop stop-color="#f8fafc"/><stop offset="1" stop-color="#fff7ed"/></linearGradient><style>
-.title{font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;font-size:28px;font-weight:700;fill:#0f172a}.sub{font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;font-size:15px;font-weight:500;fill:#475569}.label{font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;font-size:18px;font-weight:700;fill:#111827}.small{font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;font-size:13px;font-weight:500;fill:#334155}.box{stroke-width:3;rx:16;ry:16}.flow{stroke:#475569;stroke-width:4;fill:none;marker-end:url(#arrow)}.branch{stroke:#dc2626;stroke-width:3.5;fill:none;marker-end:url(#red)}</style><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#475569"/></marker><marker id="red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#dc2626"/></marker></defs>
-<rect width="1500" height="560" fill="url(#bg)"/><text x="60" y="54" class="title">Speculative Decoding：验证结果决定下一步</text><text x="60" y="82" class="sub">草稿模型负责提出候选，目标模型负责验证；拒绝时必须走 residual correction</text>
-<rect x="70" y="220" width="220" height="100" class="box" fill="#fff7ed" stroke="#f59e0b"/><text x="180" y="260" text-anchor="middle" class="label">草稿模型</text><text x="180" y="290" text-anchor="middle" class="small">提出 K 个 token</text>
-<rect x="390" y="220" width="230" height="100" class="box" fill="#eff6ff" stroke="#3b82f6"/><text x="505" y="260" text-anchor="middle" class="label">目标模型</text><text x="505" y="290" text-anchor="middle" class="small">计算 p，逐位置验证</text>
-<rect x="720" y="220" width="220" height="100" class="box" fill="#f5f3ff" stroke="#8b5cf6"/><text x="830" y="260" text-anchor="middle" class="label">接受判断</text><text x="830" y="290" text-anchor="middle" class="small">比较 p(x) 与 q(x)</text>
-<rect x="1060" y="120" width="260" height="100" class="box" fill="#ecfccb" stroke="#65a30d"/><text x="1190" y="160" text-anchor="middle" class="label">接受</text><text x="1190" y="190" text-anchor="middle" class="small">继续检查下一个位置</text>
-<rect x="1060" y="270" width="260" height="100" class="box" fill="#fff1f2" stroke="#e11d48"/><text x="1190" y="310" text-anchor="middle" class="label">拒绝</text><text x="1190" y="340" text-anchor="middle" class="small">从 residual 分布修正</text>
-<rect x="1060" y="420" width="260" height="80" class="box" fill="#ffffff" stroke="#cbd5e1"/><text x="1190" y="454" text-anchor="middle" class="label">全部接受</text><text x="1190" y="480" text-anchor="middle" class="small">采样 bonus token</text>
-<path d="M290 270L390 270" class="flow"/><path d="M620 270L720 270" class="flow"/><path d="M940 250C990 210 1010 170 1060 170" class="flow"/><path d="M940 280L1060 320" class="branch"/><path d="M940 300C990 400 1020 460 1060 460" class="flow"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="660" viewBox="0 0 1440 660" role="img" aria-labelledby="title desc">
+  <title id="title">投机解码的接受与修正分支</title>
+  <desc id="desc">逐位置计算接受概率，接受时继续，首次拒绝时进行 residual 修正，全部接受时生成 bonus token。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#475569"/></marker>
+    <marker id="green" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#16a34a"/></marker>
+    <marker id="red" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="9" markerHeight="9" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#dc2626"/></marker>
+    <style>text{font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;fill:#172033}.title{font-size:30px;font-weight:700}.sub{font-size:16px;fill:#475569}.label{font-size:18px;font-weight:700}.small{font-size:14px;fill:#475569}.node{stroke-width:2.5;rx:18;ry:18}.flow{stroke:#475569;stroke-width:3.5;stroke-linecap:round;fill:none;marker-end:url(#arrow)}.yes{stroke:#16a34a;stroke-width:3.5;stroke-linecap:round;fill:none;marker-end:url(#green)}.no{stroke:#dc2626;stroke-width:3.5;stroke-linecap:round;fill:none;marker-end:url(#red)}.branch{stroke:#94a3b8;stroke-width:3;stroke-linecap:round;fill:none}</style>
+  </defs>
+  <rect width="1440" height="660" fill="#f8fafc"/>
+  <text x="58" y="58" class="title">逐位置验证：接受、修正与 bonus</text>
+  <text x="58" y="89" class="sub">每个候选只沿一条结果路径前进；首次拒绝会结束本轮，全部通过才进入 bonus 分支。</text>
+
+  <rect x="80" y="170" width="270" height="105" class="node" fill="#eff6ff" stroke="#60a5fa"/>
+  <text x="215" y="211" text-anchor="middle" class="label">当前候选 token</text>
+  <text x="215" y="243" text-anchor="middle" class="small">读取目标概率 p 与草稿概率 q</text>
+  <rect x="450" y="170" width="300" height="105" class="node" fill="#ede9fe" stroke="#8b5cf6"/>
+  <text x="600" y="211" text-anchor="middle" class="label">接受概率</text>
+  <text x="600" y="243" text-anchor="middle" class="small">α = min(1，p(x) / q(x))</text>
+  <rect x="850" y="170" width="300" height="105" class="node" fill="#fef3c7" stroke="#d97706"/>
+  <text x="1000" y="211" text-anchor="middle" class="label">当前 token 通过？</text>
+  <text x="1000" y="243" text-anchor="middle" class="small">继续检查，或结束本轮</text>
+  <path d="M350 222H450" class="flow"/>
+  <path d="M750 222H850" class="flow"/>
+
+  <rect x="55" y="430" width="300" height="105" class="node" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="205" y="471" text-anchor="middle" class="label">接受并继续</text>
+  <text x="205" y="503" text-anchor="middle" class="small">仍有候选位置，继续扫描</text>
+  <rect x="570" y="430" width="320" height="105" class="node" fill="#fff1f2" stroke="#e11d48"/>
+  <text x="730" y="471" text-anchor="middle" class="label">首次拒绝</text>
+  <text x="730" y="503" text-anchor="middle" class="small">从 residual 分布采样修正 token</text>
+  <rect x="1085" y="430" width="300" height="105" class="node" fill="#ecfeff" stroke="#0891b2"/>
+  <text x="1235" y="471" text-anchor="middle" class="label">全部接受</text>
+  <text x="1235" y="503" text-anchor="middle" class="small">从最后一行采样 bonus token</text>
+
+  <path d="M1000 275V350M205 350H1235" class="branch"/>
+  <path d="M205 350V430" class="yes"/>
+  <path d="M730 350V430" class="no"/>
+  <path d="M1235 350V430" class="flow"/>
+  <text x="225" y="337" class="small" fill="#15803d">通过且仍有位置</text>
+  <text x="745" y="337" class="small" fill="#b91c1c">不通过</text>
+  <text x="1120" y="337" class="small" fill="#0e7490">全部位置通过</text>
 </svg>

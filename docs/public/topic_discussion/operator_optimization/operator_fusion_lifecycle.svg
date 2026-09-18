@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="430" viewBox="0 0 1100 430">
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#486581"/></marker><style>.t{font:700 27px sans-serif;fill:#17324d}.s{font:15px sans-serif;fill:#486581}.h{font:700 18px sans-serif;fill:#17324d}.x{font:15px sans-serif;fill:#334e68}.b{stroke:#829ab1;stroke-width:2;rx:14}.l{stroke:#486581;stroke-width:3;fill:none;marker-end:url(#a)}.d{stroke:#829ab1;stroke-width:2;stroke-dasharray:7 6;fill:none;marker-end:url(#a)}</style></defs>
+  <rect width="1100" height="430" fill="#f7fafc"/><text x="550" y="40" text-anchor="middle" class="t">Fusion：减少写回，也重新分配执行资源</text><text x="550" y="68" text-anchor="middle" class="s">融合的收益来自中间张量生命周期变化，不来自节点数量变少本身</text>
+  <rect x="55" y="140" width="220" height="150" fill="#e6f6f5" class="b"/><text x="165" y="180" text-anchor="middle" class="h">算子 A</text><text x="165" y="220" text-anchor="middle" class="x">读取输入</text><text x="165" y="250" text-anchor="middle" class="x">产生中间张量</text>
+  <path d="M275 215H360" class="l"/><rect x="360" y="140" width="220" height="150" fill="#fff4e6" class="b"/><text x="470" y="180" text-anchor="middle" class="h">中间张量</text><text x="470" y="220" text-anchor="middle" class="x">写回 Global Memory</text><text x="470" y="250" text-anchor="middle" class="x">再被下游读取</text>
+  <path d="M580 215H665" class="l"/><rect x="665" y="140" width="220" height="150" fill="#e6f6f5" class="b"/><text x="775" y="180" text-anchor="middle" class="h">算子 B</text><text x="775" y="220" text-anchor="middle" class="x">再次读取</text><text x="775" y="250" text-anchor="middle" class="x">继续计算</text>
+  <path d="M470 310V350H775V310" class="d"/>
+  <rect x="895" y="140" width="155" height="150" fill="#eef2ff" class="b"/><text x="972" y="180" text-anchor="middle" class="h">Fusion</text><text x="972" y="220" text-anchor="middle" class="x">减少写回</text><text x="972" y="250" text-anchor="middle" class="x">增加资源压力</text>
+  <path d="M775 215H895" class="l"/><text x="775" y="385" text-anchor="middle" class="s">对照 register、shared memory、occupancy 和端到端时间</text>
+</svg>

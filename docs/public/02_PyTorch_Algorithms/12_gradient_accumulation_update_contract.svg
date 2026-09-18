@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="500" viewBox="0 0 1200 500" role="img" aria-labelledby="title desc">
+  <title id="title">梯度累积的更新一致性条件</title>
+  <desc id="desc">梯度累积要与完整 batch 形成可比较的参数更新，需要保持样本顺序、loss reduction、loss 缩放和更新时机一致。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="10" markerHeight="10" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M1 1L11 6L1 11Z" fill="#475569"/>
+    </marker>
+    <style>
+      text{font-family:"Noto Sans CJK SC","Microsoft YaHei",sans-serif;fill:#1f2937}
+      .title{font-size:27px;font-weight:700}.subtitle{font-size:15px;font-weight:500;fill:#475569}
+      .group{font-size:18px;font-weight:700}.label{font-size:16px;font-weight:700}.small{font-size:13px;fill:#334155}
+      .panel{stroke-width:2;rx:20}.node{stroke-width:2;rx:13}.flow{fill:none;stroke:#475569;stroke-width:2.5;marker-end:url(#arrow)}
+    </style>
+  </defs>
+
+  <rect width="1200" height="500" rx="20" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="600" y="42" text-anchor="middle" class="title">梯度累积的更新一致性条件</text>
+  <text x="600" y="70" text-anchor="middle" class="subtitle">同一逻辑 batch 的两种执行方式，需要共享同一组更新条件</text>
+
+  <rect x="400" y="100" width="400" height="70" class="node" fill="#eff6ff" stroke="#3b82f6"/>
+  <text x="600" y="131" text-anchor="middle" class="group">同一逻辑 batch</text>
+  <text x="600" y="154" text-anchor="middle" class="small">比较 Full batch 与梯度累积的更新</text>
+
+  <rect x="55" y="220" width="250" height="180" class="panel" fill="#e0f2fe" stroke="#7dd3fc"/>
+  <text x="180" y="255" text-anchor="middle" class="group">样本条件</text>
+  <rect x="80" y="285" width="200" height="70" class="node" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="180" y="315" text-anchor="middle" class="label">样本与顺序一致</text>
+  <text x="180" y="338" text-anchor="middle" class="small">输入、目标、掩码同步切分</text>
+
+  <rect x="325" y="220" width="250" height="180" class="panel" fill="#fefce8" stroke="#fde68a"/>
+  <text x="450" y="255" text-anchor="middle" class="group">损失条件</text>
+  <rect x="350" y="285" width="200" height="70" class="node" fill="#fef3c7" stroke="#d97706"/>
+  <text x="450" y="315" text-anchor="middle" class="label">loss reduction 一致</text>
+  <text x="450" y="338" text-anchor="middle" class="small">例如都使用 mean</text>
+
+  <rect x="595" y="220" width="250" height="180" class="panel" fill="#fefce8" stroke="#fde68a"/>
+  <text x="720" y="255" text-anchor="middle" class="group">梯度条件</text>
+  <rect x="620" y="285" width="200" height="70" class="node" fill="#fef9c3" stroke="#ca8a04"/>
+  <text x="720" y="315" text-anchor="middle" class="label">每个 loss 除以 K</text>
+  <text x="720" y="338" text-anchor="middle" class="small">保持平均梯度尺度</text>
+
+  <rect x="865" y="220" width="280" height="180" class="panel" fill="#f0fdf4" stroke="#bbf7d0"/>
+  <text x="1005" y="255" text-anchor="middle" class="group">更新条件</text>
+  <rect x="890" y="285" width="230" height="70" class="node" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="1005" y="315" text-anchor="middle" class="label">累积完成后更新一次</text>
+  <text x="1005" y="338" text-anchor="middle" class="small">一次逻辑 batch 一次 step</text>
+
+  <path d="M600 170 V195 H180 V220" class="flow"/>
+  <path d="M600 170 V195 H450 V220" class="flow"/>
+  <path d="M600 170 V195 H720 V220" class="flow"/>
+  <path d="M600 170 V195 H1005 V220" class="flow"/>
+</svg>

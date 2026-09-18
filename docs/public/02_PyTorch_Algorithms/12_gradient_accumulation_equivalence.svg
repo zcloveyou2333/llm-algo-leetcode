@@ -1,30 +1,54 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="t d">
-<title id="t">Full batch 与梯度累积的可比条件</title><desc id="d">完整 batch 和梯度累积分别处理同一逻辑 batch，只有在数据、损失缩放和更新节奏对齐后，参数更新结果才具有可比性。</desc>
-<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#475569"/></marker><style>
-.h{font:700 28px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#0f172a}.s{font:500 15px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#475569}.l{font:700 18px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#111827}.b{font:500 14px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#334155}.box{stroke-width:3;rx:16}.f{stroke:#475569;stroke-width:4;fill:none;marker-end:url(#a)}
-</style></defs>
-<rect width="1200" height="560" fill="#f8fafc"/>
-<text x="50" y="52" class="h">Full batch 与梯度累积：先对齐，再比较</text>
-<text x="50" y="82" class="s">第二张图只说明等价条件，不重复主图的执行流程，也不代表所有训练设置都天然等价。</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="600" viewBox="0 0 1500 600" role="img" aria-labelledby="title desc">
+  <title id="title">一次逻辑 batch 的两种参数更新方式</title>
+  <desc id="desc">同一个逻辑 batch 可以一次性计算，也可以拆成多个 micro-batch 逐步累积梯度；两种方式的参数更新时机不同，单次激活值峰值也不同。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="10" markerHeight="10" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M1 1L11 6L1 11Z" fill="#475569"/>
+    </marker>
+    <style>
+      text{font-family:"Noto Sans CJK SC","Microsoft YaHei",sans-serif;fill:#1f2937}
+      .title{font-size:28px;font-weight:700}.subtitle{font-size:16px;font-weight:500;fill:#475569}
+      .group{font-size:20px;font-weight:700}.note{font-size:14px;font-weight:500;fill:#475569}
+      .label{font-size:18px;font-weight:700}.small{font-size:14px;fill:#334155}
+      .panel{stroke-width:2;rx:22}.node{stroke-width:2;rx:14}.flow{fill:none;stroke:#475569;stroke-width:2.5;marker-end:url(#arrow)}
+    </style>
+  </defs>
 
-<rect x="45" y="220" width="190" height="110" class="box" fill="#eff6ff" stroke="#3b82f6"/>
-<text x="140" y="263" text-anchor="middle" class="l">同一逻辑 batch</text><text x="140" y="297" text-anchor="middle" class="b">样本与顺序一致</text>
-<path d="M235 275H300" class="f"/>
+  <rect width="1500" height="600" rx="20" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="750" y="48" text-anchor="middle" class="title">一次逻辑 batch 的参数更新</text>
+  <text x="750" y="78" text-anchor="middle" class="subtitle">同一个逻辑 batch，可以一次计算，也可以拆成多个 micro-batch 执行</text>
 
-<rect x="300" y="135" width="240" height="110" class="box" fill="#e0f2fe" stroke="#0284c7"/>
-<text x="420" y="178" text-anchor="middle" class="l">Full batch</text><text x="420" y="212" text-anchor="middle" class="b">一次 forward / backward</text>
-<rect x="300" y="325" width="240" height="110" class="box" fill="#fef3c7" stroke="#d97706"/>
-<text x="420" y="368" text-anchor="middle" class="l">Gradient accumulation</text><text x="420" y="402" text-anchor="middle" class="b">K 次 micro-step 后更新</text>
-<path d="M540 190 C590 190 600 235 650 255" class="f"/><path d="M540 380 C590 380 600 335 650 315" class="f"/>
+  <rect x="500" y="105" width="500" height="72" class="node" fill="#eff6ff" stroke="#3b82f6"/>
+  <text x="750" y="137" text-anchor="middle" class="label">有效 batch</text>
+  <text x="750" y="161" text-anchor="middle" class="small">完成一次逻辑上的参数更新</text>
 
-<rect x="650" y="185" width="300" height="200" class="box" fill="#ecfccb" stroke="#65a30d"/>
-<text x="800" y="225" text-anchor="middle" class="l">比较前先对齐</text>
-<text x="700" y="270" class="b">同一 reduction 与 loss / K</text>
-<text x="700" y="305" class="b">累积完成后只更新一次</text>
-<text x="700" y="340" class="b">随机状态与 scheduler 节奏一致</text>
-<path d="M950 285H1010" class="f"/>
+  <rect x="95" y="215" width="570" height="315" class="panel" fill="#e0f2fe" stroke="#7dd3fc"/>
+  <text x="380" y="252" text-anchor="middle" class="group">Full batch</text>
+  <text x="380" y="278" text-anchor="middle" class="note">一次处理完整 batch，单次 activation 峰值较高</text>
+  <rect x="180" y="305" width="400" height="58" class="node" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="380" y="341" text-anchor="middle" class="label">完整 batch</text>
+  <rect x="180" y="390" width="400" height="58" class="node" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="380" y="426" text-anchor="middle" class="label">forward / backward</text>
+  <rect x="180" y="475" width="400" height="58" class="node" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="380" y="511" text-anchor="middle" class="label">optimizer.step 一次</text>
+  <path d="M380 363 V390" class="flow"/>
+  <path d="M380 448 V475" class="flow"/>
 
-<rect x="1010" y="220" width="145" height="110" class="box" fill="#f5f3ff" stroke="#8b5cf6"/>
-<text x="1082" y="263" text-anchor="middle" class="l">可比结果</text><text x="1082" y="297" text-anchor="middle" class="b">梯度与参数更新接近</text>
-<text x="600" y="490" text-anchor="middle" class="s">若 reduction、随机性或更新节奏不同，只能说明两种路径的结果不同，不能直接归因于显存策略。</text>
+  <rect x="835" y="215" width="570" height="315" class="panel" fill="#fef3c7" stroke="#fbbf24"/>
+  <text x="1120" y="252" text-anchor="middle" class="group">Gradient accumulation</text>
+  <text x="1120" y="278" text-anchor="middle" class="note">拆分计算，单次 activation 峰值较低</text>
+  <rect x="900" y="300" width="440" height="52" class="node" fill="#fef9c3" stroke="#d97706"/>
+  <text x="1120" y="333" text-anchor="middle" class="label">K 个 micro-batch</text>
+  <rect x="900" y="370" width="440" height="52" class="node" fill="#fef9c3" stroke="#d97706"/>
+  <text x="1120" y="403" text-anchor="middle" class="label">分批 forward / backward</text>
+  <rect x="900" y="440" width="440" height="52" class="node" fill="#fef9c3" stroke="#d97706"/>
+  <text x="1120" y="473" text-anchor="middle" class="label">累积梯度</text>
+  <rect x="900" y="510" width="440" height="52" class="node" fill="#fef9c3" stroke="#d97706"/>
+  <text x="1120" y="543" text-anchor="middle" class="label">optimizer.step 一次</text>
+  <path d="M1120 352 V370" class="flow"/>
+  <path d="M1120 422 V440" class="flow"/>
+  <path d="M1120 492 V510" class="flow"/>
+
+  <path d="M750 177 V195 H380 V215" class="flow"/>
+  <path d="M750 177 V195 H1120 V215" class="flow"/>
 </svg>

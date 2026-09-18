@@ -4,6 +4,10 @@
 
 这条线最重要的是按暴露顺序判断：训练先在哪一侧失控，推理又在哪一侧顶住预算，最后哪些方案只是止血，哪些方案真的值得保留。
 
+![显存优化从对象账本到证据决策](../../public/topic_discussion/memory_performance_tuning/memory_optimization_knowledge_map.svg)
+
+图片先把显存对象、生命周期、候选策略和证据出口放在同一张图中；下面按训练、推理和端到端验证三个阶段展开。
+
 主项目线先处理训练侧证据，再进入按需扩展：`73` 建立训练基线，`76` 比较 checkpoint / offload / hybrid，`75` 形成训练侧预算决策，`74` 用 profiling 对候选方案做端到端验证。Task4–5 的推理缓存与量化内容解决另一类显存问题，不是训练项目的硬性前置。
 
 完整阅读顺序可以概括为：先理解显存对象和生命周期，再建立账本；确认训练侧压力后进入 `73 → 76 → 75 → 74`，如果问题转向推理，则分别进入 KV Cache 和量化分支；单卡无法承载时，再进入分布式扩展。每条分支都沿“机制 → 策略 → 证据 → 决策”展开，不要求把所有分支串成一条线性前置。
@@ -35,6 +39,10 @@ Task1 再把对象放回硬件和运行时环境：dtype 决定对象的字节�
 
 这里可以回看 Part00 的共享入口，确认 dtype、device、输入形状、布局和错误类型。它们提供排查语言，但不替代 73 / 76 的真实测量。
 
+![训练侧显存压力定位](../../public/topic_discussion/memory_performance_tuning/training_pressure_diagnosis.svg)
+
+图中先改变 workload，再判断压力对象，最后选择 checkpoint、offload 或预算策略；它不直接给出某张 GPU 的节省比例。
+
 如果压力来自 block 内部，再补看激活、归一化和 Attention 的共享机制：先判断哪些中间结果会参与 backward，再区分训练 Attention 的临时张量与自回归 decode 中保留的 KV Cache。前者主要进入训练侧 73 / 76，后者转入推理侧 22 / 34 / 66。
 
 ## 第二段：另一条分支——推理侧显存还是装不下
@@ -49,7 +57,15 @@ Task1 再把对象放回硬件和运行时环境：dtype 决定对象的字节�
 
 这里的核心不是“为什么慢”，而是“为什么装不下”。要先分清 cache 增长是不是请求形态的自然结果，prefix reuse 和 paging 是否足够，KV cache quantization 是否值得引入。
 
+![KV Cache 的容量与复用边界](../../public/topic_discussion/memory_performance_tuning/kv_cache_budget.svg)
+
+图中把请求增长、Cache 状态、复用策略和容量证据串起来；真实容量仍需回到固定模型和 workload 测量。
+
 量化是另一条显存扩展分支：核心先看 [21 量化理论](../../01_Hardware_Math_and_Systems/21_Quantization_Theory_and_INT4_INT8.md)、[25 W8A16](../../02_PyTorch_Algorithms/25_Quantization_W8A16.md)、[40 GPTQ / AWQ](../../02_PyTorch_Algorithms/40_GPTQ_and_AWQ_Weight_Quantization.md) 和 [41 FP8 / KV Cache Quantization](../../02_PyTorch_Algorithms/41_FP8_and_KV_Cache_Quantization.md)，最后进入 [67 量化推理与部署](../../02_PyTorch_Algorithms/67_Quantized_Inference_and_Deployment.md) 的真实 backend 验证。这里要判断的是：量化省下来的显存是否换来了更长上下文、更大 batch 或更高并发，而不是只看权重文件变小。
+
+![量化作为显存工具](../../public/topic_discussion/memory_performance_tuning/quantization_memory_tool.svg)
+
+图中先区分量化对象和处理时机，再进入 backend、质量和性能验证；文件变小不等于完整服务成本按比例下降。
 
 ## 第三段：账本和实测开始打架
 
@@ -63,6 +79,10 @@ Task1 再把对象放回硬件和运行时环境：dtype 决定对象的字节�
 - Part 02 [74 Profiling Driven End-to-End Optimization](../../02_PyTorch_Algorithms/74_Profiling_Driven_End_to_End_Optimization.md)
 
 这一段真正要回答的是：理论账本里有没有漏掉临时 buffer、碎片或流程开销；训练侧峰值下降是不是只是把时间转移到了别处；推理侧 cache 压缩是不是只是把显存问题换成了延迟问题。`74` 不替代 `75` 的训练侧预算决策，而是负责最后的 profiling 和端到端验证。
+
+![显存优化的证据与决策闭环](../../public/topic_discussion/memory_performance_tuning/benchmark_tradeoff_decision.svg)
+
+这张图把固定条件、对照实验、预算敏感性和 profiling 收束到同一份结论中。
 
 Part00 的 `09 Module` 和 `10 State Dict` 也要放回这里理解：前者帮助确认哪些状态属于模型对象，后者帮助区分“保存以便恢复”和“运行时减少驻留”。如果这两个边界没有先分清，显存账本很容易把 checkpoint 文件、参数状态和 activation 混成一类。
 
@@ -79,7 +99,7 @@ Part00 的 `09 Module` 和 `10 State Dict` 也要放回这里理解：前者帮�
 - Part 02 [29 Tensor Parallelism](../../02_PyTorch_Algorithms/29_Tensor_Parallelism_Sim.md)：观察张量切分与通信；
 - Part 02 [79–81 分布式项目](../../02_PyTorch_Algorithms/79_Distributed_Parallel_Benchmark.md)：验证多 GPU 显存分摊、通信时间和推理扩展。
 
-这条分支要同时记录单卡显存、通信时间、扩展效率和稳定性。`13 Profiling` 与 `74` 可以复用来解释通信、搬运、重算和 kernel 代价，但 Profiling 是证据方法，不是分布式切分策略本身。
+这条分支要同时记录单卡显存、通信时间、扩展效率和稳定性。具体机制见[07 分布式显存与系统扩展](./07_distributed_memory_and_system_extension.md)；`13 Profiling` 与 `74` 可以复用来解释通信、搬运、重算和 kernel 代价，但 Profiling 是证据方法，不是分布式切分策略本身。
 
 ## 最终结论长什么样
 

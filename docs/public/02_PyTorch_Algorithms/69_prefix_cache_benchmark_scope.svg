@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L10,3 L0,6 Z" fill="#52606d"/>
+    </marker>
+    <style>
+      .title{font:700 28px sans-serif;fill:#172b4d}
+      .section{font:700 20px sans-serif;fill:#172b4d}
+      .label{font:600 17px sans-serif;fill:#172b4d}
+      .small{font:15px sans-serif;fill:#344563}
+      .box{stroke:#52606d;stroke-width:2;rx:12}
+      .arrow{stroke:#52606d;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1200" height="620" fill="#f7f9fc"/>
+  <text x="600" y="42" text-anchor="middle" class="title">前缀缓存评估：从请求复用到部署判断</text>
+
+  <text x="180" y="95" text-anchor="middle" class="section">请求 workload</text>
+  <text x="500" y="95" text-anchor="middle" class="section">前缀复用机制</text>
+  <text x="820" y="95" text-anchor="middle" class="section">缓存策略</text>
+  <text x="1060" y="95" text-anchor="middle" class="section">可观测证据</text>
+
+  <rect x="45" y="140" width="270" height="82" class="box" fill="#e7f0ff"/>
+  <text x="180" y="173" text-anchor="middle" class="label">共享前缀请求</text>
+  <text x="180" y="201" text-anchor="middle" class="small">system prompt、历史上下文</text>
+
+  <rect x="45" y="285" width="270" height="82" class="box" fill="#e7f0ff"/>
+  <text x="180" y="318" text-anchor="middle" class="label">输入与生成负载</text>
+  <text x="180" y="346" text-anchor="middle" class="small">长度、并发、后缀分布</text>
+
+  <rect x="365" y="140" width="270" height="82" class="box" fill="#fff3d6"/>
+  <text x="500" y="173" text-anchor="middle" class="label">最长前缀匹配</text>
+  <text x="500" y="201" text-anchor="middle" class="small">命中长度与可复用状态</text>
+
+  <rect x="365" y="285" width="270" height="82" class="box" fill="#fff3d6"/>
+  <text x="500" y="318" text-anchor="middle" class="label">未命中后缀</text>
+  <text x="500" y="346" text-anchor="middle" class="small">继续 Prefill 或分块处理</text>
+
+  <rect x="685" y="140" width="270" height="82" class="box" fill="#e3fcef"/>
+  <text x="820" y="173" text-anchor="middle" class="label">缓存开关与策略</text>
+  <text x="820" y="201" text-anchor="middle" class="small">cache off、prefix cache</text>
+
+  <rect x="685" y="285" width="270" height="82" class="box" fill="#e3fcef"/>
+  <text x="820" y="318" text-anchor="middle" class="label">容量与失效管理</text>
+  <text x="820" y="346" text-anchor="middle" class="small">blocks、淘汰、维护开销</text>
+
+  <rect x="995" y="140" width="160" height="82" class="box" fill="#f0e8ff"/>
+  <text x="1075" y="173" text-anchor="middle" class="label">复用证据</text>
+  <text x="1075" y="201" text-anchor="middle" class="small">命中率、复用 token</text>
+
+  <rect x="995" y="285" width="160" height="82" class="box" fill="#f0e8ff"/>
+  <text x="1075" y="318" text-anchor="middle" class="label">服务结果</text>
+  <text x="1075" y="346" text-anchor="middle" class="small">TTFT、吞吐、显存</text>
+
+  <path d="M315 181 L365 181" class="arrow"/>
+  <path d="M315 326 L365 326" class="arrow"/>
+  <path d="M500 222 L500 285" class="arrow"/>
+  <path d="M635 181 L685 181" class="arrow"/>
+  <path d="M635 326 L685 326" class="arrow"/>
+  <path d="M820 222 L820 285" class="arrow"/>
+  <path d="M955 181 L995 181" class="arrow"/>
+  <path d="M955 326 L995 326" class="arrow"/>
+  <path d="M820 367 C820 455 500 455 500 367" class="arrow"/>
+  <text x="660" y="478" text-anchor="middle" class="small">策略改变 → 重新观察命中与服务代价</text>
+
+</svg>

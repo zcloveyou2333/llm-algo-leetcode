@@ -1,10 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="320" viewBox="0 0 900 320">
-  <style>text{font-family:"Noto Sans CJK SC","Microsoft YaHei",sans-serif;fill:#1f2937}.title{font-size:23px;font-weight:700}.label{font-size:17px;font-weight:600}.small{font-size:14px}.box{fill:#f8fafc;stroke:#475569;stroke-width:2;rx:12}.arrow{stroke:#64748b;stroke-width:3;marker-end:url(#a)}</style>
-  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L9,3 L0,6 Z" fill="#64748b"/></marker></defs>
-  <text x="450" y="34" text-anchor="middle" class="title">74 GPU trace：采集证据，不自动宣判瓶颈</text>
-  <rect x="35" y="95" width="180" height="110" class="box"/><text x="125" y="130" text-anchor="middle" class="label">固定 76 workload</text><text x="125" y="160" text-anchor="middle" class="small">模型、batch、seq_len</text><text x="125" y="184" text-anchor="middle" class="small">baseline / candidate</text>
-  <rect x="245" y="95" width="180" height="110" class="box"/><text x="335" y="130" text-anchor="middle" class="label">torch.profiler</text><text x="335" y="160" text-anchor="middle" class="small">CPU + CUDA 活动</text><text x="335" y="184" text-anchor="middle" class="small">保存 trace 文件</text>
-  <rect x="455" y="95" width="180" height="110" class="box"/><text x="545" y="130" text-anchor="middle" class="label">Perfetto 检查</text><text x="545" y="160" text-anchor="middle" class="small">阶段、kernel、等待</text><text x="545" y="184" text-anchor="middle" class="small">形成瓶颈证据</text>
-  <rect x="665" y="95" width="200" height="110" class="box"/><text x="765" y="130" text-anchor="middle" class="label">针对性复验</text><text x="765" y="160" text-anchor="middle" class="small">指标 + trace 对照</text><text x="765" y="184" text-anchor="middle" class="small">再决定是否保留</text>
-  <path d="M215 150 H240 M425 150 H450 M635 150 H660" class="arrow"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="470" viewBox="0 0 1280 470">
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#52606d"/>
+    </marker>
+    <style>
+      .title{font:700 28px sans-serif;fill:#172b4d}
+      .subtitle{font:15px sans-serif;fill:#52606d}
+      .label{font:600 17px sans-serif;fill:#172b4d}
+      .small{font:15px sans-serif;fill:#344563}
+      .box{stroke:#52606d;stroke-width:2;rx:12}
+      .arrow{stroke:#52606d;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+
+  <rect width="1280" height="470" fill="#f7f9fc"/>
+  <text x="640" y="42" text-anchor="middle" class="title">GPU trace：从对照运行到瓶颈假设</text>
+  <text x="640" y="70" text-anchor="middle" class="subtitle">固定同一组输入条件，对比基线运行与激活重算的执行时间线</text>
+
+  <rect x="35" y="155" width="245" height="120" class="box" fill="#e0f2fe"/>
+  <text x="157" y="190" text-anchor="middle" class="label">共同实验条件</text>
+  <text x="157" y="220" text-anchor="middle" class="small">模型、输入、batch、seq_len</text>
+  <text x="157" y="245" text-anchor="middle" class="small">数据类型、优化器、GPU、工作负载</text>
+
+  <rect x="350" y="75" width="245" height="110" class="box" fill="#dcfce7"/>
+  <text x="472" y="112" text-anchor="middle" class="label">基线运行</text>
+  <text x="472" y="142" text-anchor="middle" class="small">不启用 checkpoint</text>
+  <text x="472" y="166" text-anchor="middle" class="small">作为时间线参照</text>
+
+  <rect x="350" y="285" width="245" height="110" class="box" fill="#fef3c7"/>
+  <text x="472" y="322" text-anchor="middle" class="label">激活重算</text>
+  <text x="472" y="352" text-anchor="middle" class="small">启用激活重算</text>
+  <text x="472" y="376" text-anchor="middle" class="small">用计算换显存</text>
+
+  <rect x="665" y="155" width="245" height="120" class="box" fill="#eef2ff"/>
+  <text x="787" y="190" text-anchor="middle" class="label">同口径 trace</text>
+  <text x="787" y="220" text-anchor="middle" class="small">相同 ProfilerStep 区间</text>
+  <text x="787" y="245" text-anchor="middle" class="small">保存 CPU / CUDA 时间线</text>
+
+  <rect x="980" y="75" width="245" height="110" class="box" fill="#fce7f3"/>
+  <text x="1102" y="112" text-anchor="middle" class="label">时间线观察</text>
+  <text x="1102" y="142" text-anchor="middle" class="small">forward、backward、optimizer</text>
+  <text x="1102" y="166" text-anchor="middle" class="small">重算、等待和同步</text>
+
+  <rect x="980" y="285" width="245" height="110" class="box" fill="#e3fcef"/>
+  <text x="1102" y="322" text-anchor="middle" class="label">瓶颈假设</text>
+  <text x="1102" y="352" text-anchor="middle" class="small">显存下降是否来自重算</text>
+  <text x="1102" y="376" text-anchor="middle" class="small">时间增加是否来自额外计算</text>
+
+  <path d="M280 205 H315 V130 H340" class="arrow"/>
+  <path d="M280 225 H315 V340 H340" class="arrow"/>
+  <path d="M595 130 H630 V190 H655" class="arrow"/>
+  <path d="M595 340 H630 V240 H655" class="arrow"/>
+  <path d="M910 190 H945 V130 H970" class="arrow"/>
+  <path d="M910 240 H945 V340 H970" class="arrow"/>
 </svg>

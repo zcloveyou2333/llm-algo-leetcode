@@ -1,4 +1,4 @@
-# 66–70 推理项目验证清单
+# 66–72 推理项目验证清单
 
 本页是 `Part 02` 推理项目的执行清单。它补充 Notebook 中的实验说明，不替代各节的题目、答案和策略解释。
 
@@ -43,6 +43,7 @@ python tools/test_notebook_answers.py \
 | 68 | Practice-P1；P2 扩展 | `RUN_BACKEND_SMOKE = True` | `68_backend_smoke.json` | 只能验证 baseline endpoint；不能据此宣称 speculative decoding 已启用 |
 | 69 | Practice-P1；可选 P2 | `RUN_REAL_BACKEND = True` | `69_prefix_cache.json` | 必须确认 prefix cache 开关、命中率和失效开销，而不只是服务启动成功 |
 | 70 | Practice-P1；可选 P2 | `RUN_REAL_BACKEND = True` | `70_scheduler.json` | 需要并发 workload；单次 smoke test 不能代表调度器整体收益 |
+| 72 | Practice-P1；可选 P2 | Step 5 部署开关 | `72_model_deployment.json` | 固定 workload，比较具体 model / revision / artifact / backend / hardware；记录加载状态、TTFT、TPOT、吞吐、P99、显存和质量 |
 
 在真实 GPU 环境中，Notebook 会通过 `tools/inference_project_runtime.py`：
 
@@ -53,7 +54,7 @@ python tools/test_notebook_answers.py \
 - 把结果保存到 `benchmarks/results/`；
 - 在 `finally` 中停止 backend。
 
-66 使用兼容旧版 vLLM / 多环境 Notebook 的专用入口，但仍然复用相同的 benchmark 参数和 `normalized_result` 输出；67–70 使用共享 runtime helper。两条入口都必须满足“启动失败不生成成功结论、服务结束后执行清理、结果写入仓库根目录”的要求。
+66 使用兼容旧版 vLLM / 多环境 Notebook 的专用入口，但仍然复用相同的 benchmark 参数和 `normalized_result` 输出；67–70 使用共享 runtime helper。72 当前先完成配置审计和对照记录，真实 backend 启动与结果落盘作为后续增量。已接入 runtime 的入口都必须满足“启动失败不生成成功结论、服务结束后执行清理、结果写入仓库根目录”的要求。
 
 从 Colab / ModelScope 打开 Notebook 时，先确保仓库已经 clone，并从仓库根目录运行；没有 GPU 时保持真实 backend 开关关闭。
 
@@ -74,7 +75,7 @@ jq '.normalized_result' benchmarks/results/66_vllm_real.json
 
 应能看到模型、backend、dtype、并发、TTFT、TPOT、E2E latency、吞吐和 decision 等字段。
 
-## 4. 67–70 验证
+## 4. 67–72 验证
 
 分别打开对应 Notebook 的可选运行单元：
 
@@ -82,6 +83,7 @@ jq '.normalized_result' benchmarks/results/66_vllm_real.json
 - 68：设置 `RUN_BACKEND_SMOKE = True`。该结果是 speculative baseline 的 backend smoke test，真正 speculative 实验还需要 draft model 和 verify 能力。
 - 69：设置 `RUN_REAL_BACKEND = True`，并确认 backend 的 prefix-cache 配置确实打开。
 - 70：设置 `RUN_REAL_BACKEND = True`，至少使用并发 4 的 workload，再比较 TTFT、TPOT、吞吐和公平性。
+- 72：在 Step 5 中打开部署开关，先固定 66 的 workload，再一次只改变模型、模型产物或 backend；必须记录 model ID、revision、格式、dtype、硬件和加载状态。
 
 各节的自动化边界如下：
 
@@ -92,8 +94,9 @@ jq '.normalized_result' benchmarks/results/66_vllm_real.json
 | 68 | baseline backend smoke、结果保存、服务清理 | draft model、接受率、verify 成本和真实 speculative 配置 |
 | 69 | backend 启动、benchmark、结果保存、服务清理 | prefix cache 是否真正开启、命中率和失效开销 |
 | 70 | backend 启动、并发 benchmark、结果保存、服务清理 | workload 规模、公平性、排队和长时间稳定性 |
+| 72 | 模型与 backend 配置检查、对照记录和结果字段准备 | 具体模型是否支持目标 backend、artifact / kernel 是否匹配，以及真实质量和性能证据 |
 
-因此，`RUN_BACKEND_SMOKE = True` 只适用于 68 的链路检查；它不会自动把 baseline smoke 升级成 speculative decoding 实验。67 的默认 Qwen 模型也只验证部署链路，不能直接代表量化收益。
+因此，`RUN_BACKEND_SMOKE = True` 只适用于 68 的链路检查；它不会自动把 baseline smoke 升级成 speculative decoding 实验。67 的默认 Qwen 模型也只验证部署链路，不能直接代表量化收益。72 的 CPU 路径只验证配置和决策逻辑，不能替代真实模型与 backend 的部署证据。
 
 检查结果文件：
 
@@ -102,12 +105,13 @@ ls -lh \
   benchmarks/results/67_quantized_deployment.json \
   benchmarks/results/68_backend_smoke.json \
   benchmarks/results/69_prefix_cache.json \
-  benchmarks/results/70_scheduler.json
+  benchmarks/results/70_scheduler.json \
+  benchmarks/results/72_model_deployment.json
 ```
 
 ## 5. 统一 JSON schema 检查
 
-66–70 的结果允许保留策略特有字段，但公共结果位于 `normalized_result`，版本为
+66–72 的结果允许保留策略特有字段，但公共结果位于 `normalized_result`，版本为
 `inference-benchmark/v1`。执行：
 
 历史 66 结果可能只有旧版顶层字段。不要覆盖原始测量文件，可使用下面的工具另存一份规范化结果：
@@ -128,7 +132,8 @@ for f in \
   benchmarks/results/67_quantized_deployment.json \
   benchmarks/results/68_backend_smoke.json \
   benchmarks/results/69_prefix_cache.json \
-  benchmarks/results/70_scheduler.json; do
+  benchmarks/results/70_scheduler.json \
+  benchmarks/results/72_model_deployment.json; do
   echo "=== $f"
   jq -e '
     .normalized_result.schema_version and

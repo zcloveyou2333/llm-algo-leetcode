@@ -26,7 +26,7 @@
 - [12. Gradient Accumulation | 梯度累积](./12_Gradient_Accumulation.md)
 - [13. End-to-End Fine-Tuning Experiment | 端到端微调实验](./13_End_to_End_Fine_Tuning_Experiment.md)
 - [60. LoRA Fine-Tuning Project | LoRA 微调项目](./60_LoRA_Fine_Tuning_Project.md)
-
+---
 
 ### Step 1（项目设计）：明确问题与单变量实验
 
@@ -375,7 +375,7 @@ if RUN_PROJECT_EXPORT:
 
 ## 相关阅读
 
-完成 LoRA 变体的统一规格、指标记录和排名后，可以继续回看指令微调项目，并用训练性能分析验证当前选型。
+以下资料按“参数高效微调论文 → 开源实现 → 对比项目”排列，用于把 LoRA 变体、可训练参数和训练成本连接到真实适配实验。
 
 - [LoRA 原论文：Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685)
 - [Hugging Face PEFT 官方仓库](https://github.com/huggingface/peft)

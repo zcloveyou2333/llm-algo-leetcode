@@ -32,7 +32,7 @@
 <text x="1335" y="185" text-anchor="middle" class="head">多头合并</text><text x="1335" y="225" text-anchor="middle" class="body">转置并 reshape</text><text x="1335" y="270" text-anchor="middle" class="shape">[B, S, H×D]</text>
 <path d="M230 227 H270" class="line"/><path d="M470 227 H510" class="line"/><path d="M710 227 H750" class="line"/><path d="M950 227 H990" class="line"/><path d="M1190 227 H1230" class="line"/>
 
-<rect x="520" y="345" width="460" height="78" fill="#fff4e6" class="box" stroke="#d97706"/>
-<text x="750" y="372" text-anchor="middle" class="head">KV Cache 分支</text><text x="750" y="397" text-anchor="middle" class="body">仅保存历史 K/V，沿 S 维增长</text><text x="750" y="419" text-anchor="middle" class="small">GQA 使用 Hₖᵥ，Decode 时对齐到 H</text>
-<path d="M615 310 V335 H750 V345" class="branch"/>
+<rect x="385" y="345" width="460" height="78" fill="#fff4e6" class="box" stroke="#d97706"/>
+<text x="615" y="372" text-anchor="middle" class="head">KV Cache 分支</text><text x="615" y="397" text-anchor="middle" class="body">仅保存历史 K/V，沿 S 维增长</text><text x="615" y="419" text-anchor="middle" class="small">GQA 使用 H<tspan baseline-shift="sub" font-size="12">kv</tspan>，Decode 时对齐到 H</text>
+<path d="M615 310 V345" class="branch"/>
 </svg>

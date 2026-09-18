@@ -2,29 +2,39 @@
 
 > 专题类型：横切支撑　主服务目标：瓶颈定位与证据归因
 
-> 导读：这个专题不从工具按钮出发，而是训练你把“哪里慢、为什么慢、改完是否真的更好”串成一条可复现的证据链，再决定回到推理、显存、通信或算子层继续优化。
+## 页面导语
 
-## 专题定位与 Infra 层定位
+本专题面向需要回答“哪里慢、为什么慢、改完是否真的更好”的学习者。你将把性能现象改写成可测量的问题，建立可重复的 baseline，再用时间线、显存、通信和 benchmark 证据验证瓶颈假设，最后形成 `inspect / optimize / validate / revert` 的行动决策。
 
-本专题串起 profiling 主线：先定义问题，再用时间热点、memory timeline、通信等待和 benchmark 验证形成证据链，最后收成 `inspect / optimize / validate / revert` 的行动建议。Profiling 贯穿 Infra-L1–Infra-L5，是证据方法而不是独立软件层：Infra-L1 看硬件利用率与带宽，Infra-L2 看 kernel、算子库、通信库和编译结果，Infra-L3 看框架与运行时，Infra-L4 看服务请求、KV Cache 和吞吐，Infra-L5 看资源调度与回归治理。
-
-它的作用是把计算、内存、通信三条能力轴放到同一条时间线上，再决定应该回到哪一层优化。若问题已经明确变成显存预算或推理选型，应转到对应专题；若已定位到单个算子、访存或 kernel 融合，则转到算子优化；若问题是图变换、IR、lowering 或 backend 选择，则转到编译与图优化。
+性能分析不是某一个 profiler 的按钮集合，而是一套跨层证据方法：Part00 提供基础取证，Part01 建立计算、内存、传输和调度模型，Part02 在固定模型、硬件和 workload 下完成真实项目验证。
 
 ![性能分析：从现象到可复核决策](../../docs/public/topic_discussion/profiling/profiling_evidence_overview.svg)
 
-性能分析的产出不是一个热点列表，而是一条从现象、证据到瓶颈归因和行动验证的证据链。
+## 如何开始
 
-## 推荐入口
+想沿着一次完整问题连续阅读时，先看[性能分析深入阅读](./walkthrough.md)；想快速根据指标、工具和证据等级选择下一步时，使用[性能分析正文](./casebook.md)。想按知识和实验顺序学习时，从下面的 Task0 开始。
 
-推荐从 [Part 02 导学](../../02_PyTorch_Algorithms/intro.md) 的性能与项目路线进入，再用 [Part 02 资产表](../../02_PyTorch_Algorithms/2_10.md) 定位 74、79 等项目节。73、76、75 属于显存优化路线的训练侧项目，Profiling 在其中提供证据方法；74 是显存路线的最终收口项目，同时复用本专题的方法。
+推荐先阅读 [Part 00 · 0E 调试基础](../../00_Prerequisites/0E.md)，再进入 [Part 01 · 13 性能分析与瓶颈定位](../../01_Hardware_Math_and_Systems/13_Profiling_and_Bottleneck_Analysis.ipynb)，最后根据问题进入 Part02 的真实项目。Colab / ModelScope 学习者完成 Level 0–1 即可；Level 2–3 属于 GPU 服务器和多卡扩展。
 
-## 前置阅读
+## 主学习路线
 
-建议先掌握 [Part 00 · 0E 调试基础](../../00_Prerequisites/0E.md) 与 [Part 01 · 13 性能分析与瓶颈定位](../../01_Hardware_Math_and_Systems/13_Profiling_and_Bottleneck_Analysis.ipynb)，再进入 Part 02 的训练、推理或并行项目。若只想定位单个性能问题，可直接从下面的 Task 对应正文开始。
+本专题使用 Task0–6 组织一条证据路线：先定义问题，再建立 baseline，随后读取时间、显存和通信证据，最后用对照实验和回归检查形成行动决策。一个 Task 可以连接多个来源小节或项目；专题正文负责解释概念和串联判断，不替代 Notebook 的实现。
 
-## 工具分层与环境边界
+![性能分析学习路线：从现象到可复核行动](../../docs/public/topic_discussion/profiling/profiling_task_route.svg)
 
-本专题不要求一开始安装完整的 GPU 工具链。工具应随着问题粒度逐级增加：先用轻量测量确认现象，再用框架级 profiler 找方向，只有在需要解释系统重叠或 kernel 细节时，才进入 Nsight 和分布式工具。
+| Task | 核心问题 | 学习内容 | 主要产出 | 主学习线 | 专题正文 |
+|:---|:---|:---|:---|:---|:---|
+| Task0 | “慢”具体表现在哪个指标和阶段？ | 定义现象、指标、假设和测量边界 | 一份可测量的问题定义 | [Part 00 · 0E 调试基础](../../00_Prerequisites/0E.md) → [Part 01 · 13 性能分析与瓶颈定位](../../01_Hardware_Math_and_Systems/13_Profiling_and_Bottleneck_Analysis.ipynb) | [01 为什么需要性能分析](./01_why_profiling_matters.md) |
+| Task1 | 怎样得到可重复的 baseline？ | 固定 workload、环境、同步方式、warmup 和重复次数 | baseline 指标与环境快照 | [Part 00 · 17 Profiling 基础](../../00_Prerequisites/17_PyTorch_Profiling_Basics.ipynb) → [Part 00 · 20 Profiling 与显存账本](../../00_Prerequisites/20_Profiling_and_Memory_Ledger.ipynb) | [02 时间分解与 Trace 阅读](./02_time_breakdown_and_trace_reading.md) |
+| Task2 | 时间到底消耗在计算、启动还是等待？ | 读取 operator、kernel、launch、同步和阶段切换 | 时间热点与待验证假设 | [Part 00 · 17 Profiling 基础](../../00_Prerequisites/17_PyTorch_Profiling_Basics.ipynb) → [Part 00 · 20 Profiling 与显存账本](../../00_Prerequisites/20_Profiling_and_Memory_Ledger.ipynb) | [02 时间分解与 Trace 阅读](./02_time_breakdown_and_trace_reading.md) |
+| Task3 | 显存峰值和驻留行为如何影响性能？ | 观察 allocation、residency、异常和对象生命周期 | memory timeline / snapshot 与归因线索 | [Part 00 · 18 显存分析与优化](../../00_Prerequisites/18_Memory_Profiling_and_Optimization.ipynb) → [Part 00 · 19 调试与异常定位](../../00_Prerequisites/19_Debugging_and_Anomaly_Localization.ipynb) | [03 显存时间线与驻留状态](./03_memory_timeline_and_residency.md) |
+| Task4 | 多卡收益为什么被通信和同步吃掉？ | 对齐单卡 baseline，观察 collective、拓扑、等待和 overlap | 通信归因与扩展效率假设 | [Part 02 · 46 NCCL 通信性能分析](../../02_PyTorch_Algorithms/46_Communication_Profiling_with_NCCL.ipynb) → [Part 02 · 79 分布式并行基准测试](../../02_PyTorch_Algorithms/79_Distributed_Parallel_Benchmark.ipynb) | [04 通信等待与重叠](./04_communication_wait_and_overlap.md) |
+| Task5 | 候选优化是否在同一 workload 下有效？ | 设计 baseline / candidate、统计口径和回归检查 | 可比较的结果表与失败记录 | [Part 02 · 66 推理性能对比](../../02_PyTorch_Algorithms/66_Inference_Performance_Comparison.ipynb) → [Part 02 · 73 训练性能分析](../../02_PyTorch_Algorithms/73_Training_Performance_Analysis.ipynb) → [Part 02 · 79 分布式并行基准测试](../../02_PyTorch_Algorithms/79_Distributed_Parallel_Benchmark.ipynb) | [05 基准测试设计与回归验证](./05_benchmark_design_and_regression_validation.md) |
+| Task6 | 证据是否足以支持保留、继续取证或回退？ | 汇总 evidence level、收益、代价、质量和复查结果 | 带行动理由的项目结论 | [Part 02 · 74 Profiling 驱动的端到端优化](../../02_PyTorch_Algorithms/74_Profiling_Driven_End_to_End_Optimization.ipynb) → [Part 02 · 76 Activation Checkpoint / Offload 基准](../../02_PyTorch_Algorithms/76_Activation_Checkpoint_Offload_Benchmark.ipynb) → [Part 02 · 75 显存预算压缩项目](../../02_PyTorch_Algorithms/75_Memory_Budget_Compression_Project.ipynb) | [06 诊断与行动决策](./06_diagnosis_and_action_decision.md) |
+
+## 工具分层与测量口径
+
+工具随着问题粒度逐级增加：先用轻量测量确认现象，再用框架级 profiler 找方向，只有需要解释系统重叠或 kernel 细节时，才进入 Nsight 和分布式工具。
 
 | 层级 | 工具 | 主要回答的问题 | 环境要求 |
 |:---|:---|:---|:---|
@@ -33,42 +43,33 @@
 | Level 2：系统级 | Nsight Systems | CPU-GPU overlap、stream、同步点、数据搬运和服务阶段 | NVIDIA GPU、Nsight Systems |
 | Level 3：kernel / 分布式级 | Nsight Compute、NCCL trace / debug log | occupancy、访存吞吐、Tensor Core、通信等待和 overlap | GPU；多卡分析还需要分布式环境 |
 
-`73`、`76`、`75` 是显存优化路线的训练侧项目，分别负责基线、策略比较和预算决策；`74` 使用 Level 0-2 的证据对显存优化方案做最终端到端收口。`79` 和 `46` 延伸到 Level 3 的通信与并行问题。Colab / ModelScope 学习者完成 Level 0-1 即可，Level 2-3 标记为 GPU 服务器扩展，不作为主线前置。
-
-## 主学习线
-
-本专题不单列 Task0：Task0 在各主路线中负责建立训练、推理或显存对象的共同语言，Profiling 从 Task1 的测量与调试桥接开始。`Task1-6` 指向 `Part 00 / Part 02` 的具体小节；最后一列的 `01-06` 是专题正文页，只负责解释和串联。
-
-![性能分析学习路线：从现象到可复核行动](../../docs/public/topic_discussion/profiling/profiling_task_route.svg)
-
-上图先说明从测量到行动的任务顺序；下表再展开每个任务对应的小节与正文入口。
-
-| Task | 学习内容 | 主学习线 | 专题正文 |
+| 字段 | 统一含义 | 常用单位 | 使用范围与注意事项 |
 |:---|:---|:---|:---|
-| Task1 | profiling 与调试前置桥 | [Part 00 · 0E 调试基础](../../00_Prerequisites/0E.md) → [Part 02 · 17 自动求导基础](../../02_PyTorch_Algorithms/17_Autograd_Basics.ipynb) | [01 为什么需要性能分析](./01_why_profiling_matters.md) |
-| Task2 | 时间热点与 trace 阅读 | [Part 00 · 20 Profiling 与显存账本](../../00_Prerequisites/20_Profiling_and_Memory_Ledger.ipynb) | [02 时间分解与 Trace 阅读](./02_time_breakdown_and_trace_reading.md) |
-| Task3 | memory profiling 与异常定位 | [Part 00 · 18 显存分析与优化](../../00_Prerequisites/18_Memory_Profiling_and_Optimization.ipynb) → [Part 00 · 19 调试与异常定位](../../00_Prerequisites/19_Debugging_and_Anomaly_Localization.ipynb) → [Part 00 · 20 Profiling 与显存账本](../../00_Prerequisites/20_Profiling_and_Memory_Ledger.ipynb) | [03 显存时间线与驻留状态](./03_memory_timeline_and_residency.md) |
-| Task4 | 训练 / 推理证据采集与通信等待 | [Part 00 · 19 调试与异常定位](../../00_Prerequisites/19_Debugging_and_Anomaly_Localization.ipynb) → [Part 00 · 20 Profiling 与显存账本](../../00_Prerequisites/20_Profiling_and_Memory_Ledger.ipynb) → [Part 02 · 22 vLLM PagedAttention](../../02_PyTorch_Algorithms/22_vLLM_PagedAttention.ipynb) → [Part 02 · 46 NCCL 通信性能分析](../../02_PyTorch_Algorithms/46_Communication_Profiling_with_NCCL.ipynb) | [04 通信等待与重叠](./04_communication_wait_and_overlap.md) |
-| Task5 | benchmark 设计与回归验证 | [Part 02 · 46 通信性能分析与 NCCL](../../02_PyTorch_Algorithms/46_Communication_Profiling_with_NCCL.ipynb) → [Part 02 · 79 分布式并行基准测试](../../02_PyTorch_Algorithms/79_Distributed_Parallel_Benchmark.ipynb) → [Part 02 · 74 Profiling 驱动的端到端优化](../../02_PyTorch_Algorithms/74_Profiling_Driven_End_to_End_Optimization.ipynb) | [05 基准测试设计与回归验证](./05_benchmark_design_and_regression_validation.md) |
-| Task6 | 回归验证与行动建议 | [Part 02 · 74 Profiling 驱动的端到端优化](../../02_PyTorch_Algorithms/74_Profiling_Driven_End_to_End_Optimization.ipynb) | [06 诊断与行动决策](./06_diagnosis_and_action_decision.md) |
+| `step_time_ms` | 一次训练 step 从开始到完成的耗时 | ms/step | 明确是否包含数据加载和同步 |
+| `latency_ms` | 一次请求或一次运行的端到端耗时 | ms | 注明是单次、E2E 还是阶段耗时 |
+| `TTFT` / `TPOT` | 首 token 延迟 / 后续 token 平均间隔 | ms、ms/token | 只用于生成式推理请求 |
+| `throughput` | 单位时间完成的工作量 | samples/s、tokens/s、req/s | 写清分子是样本、token 还是请求 |
+| `peak_memory` | 测量区间内达到的显存峰值 | MB / MiB | 区分 allocated 与 reserved |
+| `hotspot` | 值得继续检查的算子、阶段或等待区间 | — | 观察证据，不等于已确认瓶颈 |
+| `P50 / P99` | 延迟分布的中位数和高分位数 | ms | 需要足够请求样本 |
+| `evidence_level` | 当前结论获得的证据层级 | 枚举 | 区分 CPU、GPU smoke、固定 benchmark 和稳定结果 |
 
-## 正文与跳转
+## Part 之间的职责
 
-先按上面的 `Task1-6` 走来源主线；遇到“现在到底慢在哪里”“看到一个热点后下一步该做什么”时，再回来看对应的专题正文。想看汇总版就进 [性能分析正文](./casebook.md)，想按连续故事线走一遍就进 [性能分析深入阅读](./walkthrough.md)。
+- **Part00：基础取证。** 17 建立时间与 trace 记录，18 拆分训练显存对象，19 检查正确性异常，20 把证据整理成下一项验证动作。
+- **Part01：瓶颈模型。** 13 把硬件、计算、内存、传输和调度联系起来，帮助提出可测量的瓶颈假设。
+- **Part02：项目验证。** 66–70、73–76、79–81 等项目在固定模型、硬件和 workload 下采集真实时间、显存、通信和质量证据，比较 baseline 与 candidate，并输出工程结论。
 
-如果问题已经跨到别的专题：
-[显存优化](../memory_performance_tuning/intro.md) 负责预算与代价取舍，[推理优化](../inference_optimization/intro.md) 负责请求链路判断，[通信与并行](../communication_parallel/intro.md) 负责多卡等待和切分代价。
+因此，Part00 的热点列表和 Part01 的理论账本需要在 Part02 项目中通过匹配 workload、重复测量和回归检查升级为项目结论。
 
-## 专题结论
+## 跨专题入口与项目收口
 
-Profiling 不能直接产生“优化成功”的结论，它提供的是从现象到决策所需的证据。完整结论至少要经过：
+如果问题已经明确变成显存预算，进入[显存优化](../memory_performance_tuning/intro.md)；如果问题是请求阶段和 backend 行为，进入[推理优化](../inference_optimization/intro.md)；如果问题是多卡等待和切分代价，进入[通信与并行](../communication_parallel/intro.md)。单个热点、单次 trace 或单项显存下降只能支持继续检查；完整结论需要经过：
 
-`固定 workload → 建立 baseline → 提出可证伪假设 → 采集匹配证据 → 对照 candidate → 检查质量与回归 → 形成行动`
-
-在显存优化项目中，`73` 建立训练 baseline，`76` 比较显存策略，`75` 做预算敏感性，`74` 用真实 trace 解释端到端代价；Profiling 不替代这四个项目的策略选择。通信与并行问题再进入 `79–81`，推理请求问题进入 `66–70`。
-
-因此，单个热点、单次 trace 或单项显存下降只能支持“需要继续检查”的判断。只有在模型、硬件、软件版本、workload、重复次数和质量门槛都明确时，才可以把结果升级为可复现的 `validate` 或 `revert` 决策。
+`固定 workload → baseline → 可证伪假设 → 匹配证据 → candidate 对照 → 质量与回归 → 行动决策`
 
 ## 环境与验证
 
-基础 trace 阅读和部分模拟实验可先用 CPU；真实 GPU profiling、显存时间线和多卡通信需要对应 GPU 或分布式环境。建议固定 workload、warmup、迭代次数和随机种子，并将结果保存为 JSON；跨机器比较时同时记录 PyTorch、CUDA、驱动、GPU 型号和并行配置。
+基础 trace 阅读和部分模拟实验可先用 CPU；真实 GPU profiling、显存时间线和多卡通信需要对应 GPU 或分布式环境。固定 workload、warmup、迭代次数和随机种子，并将结果保存为 JSON；跨机器比较时同时记录 PyTorch、CUDA、驱动、GPU 型号和并行配置。
+
+想快速查字段、工具和判断条件时，进入[性能分析正文](./casebook.md)；想沿完整问题链阅读时，进入[性能分析深入阅读](./walkthrough.md)。

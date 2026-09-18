@@ -254,6 +254,24 @@ Part 01 图片负责建立正确的基础模型；Part 02 图片负责解释具�
 
 73 节可作为项目页示例：导读说明项目分工，前置阅读链接直接依赖，相关阅读按后续实验顺序链接 76 → 75 → 74；正文重复引用可使用普通节次。该规则同样适用于 60–71、73–76、79–81 等项目节。
 
+### 项目实验的共用配置、指标与证据字段
+
+项目页的 Step 1 只说明实验契约：比较对象、固定条件、变量、主要指标和需要达到的证据级别。完整的实际配置、运行开关、结果文件和 profiler 路径统一放在本节最后的“真实实验与证据”Step；结果表格放在该 Step 的最后，`相关阅读` 放在 Notebook 最后一项。
+
+三类项目共用以下字段，具体项目可以增加策略专属字段，但不要改写公共字段名称：
+
+| 字段组 | 公共字段 | 用途 |
+|:---|:---|:---|
+| 运行条件 | `model`、`model_revision`、`dataset`、`dataset_revision`、`hardware`、`cuda`、`dtype`、`backend` | 说明结果在哪个模型、数据和运行环境下得到 |
+| workload | `batch_size`、`seq_len`、`tokens`、`steps`、`concurrency`、`seed` | 判断 baseline 与 candidate 是否可比较 |
+| 结果指标 | `latency_ms` / `step_time_ms`、`throughput`、`peak_memory_mb`、`oom`、`quality` | 同时记录性能、资源和任务约束 |
+| 证据 | `evidence_level`、`trace_path`、`result_path`、`status`、`failure_reason` | 区分理论、CPU、GPU smoke、固定 benchmark 和 profiler 证据 |
+| 决策 | `decision`、`next_action` | 统一输出 `accept / tune / reject` 和下一步动作 |
+
+三组项目的专属字段如下：73–76 增加 `memory_budget_mb`、`checkpoint`、`offload`、`recompute` 和 profiler trace；61–65 增加 `train_loss`、`val_loss`、任务质量、可训练参数量和 adapter 产物；79–81 增加 `world_size`、`rank`、`parallel_strategy`、`communication_ms`、`communication_ratio`、`scaling_efficiency` 和通信 trace。
+
+统一证据等级建议使用：`theoretical`、`cpu_simulation`、`gpu_smoke`、`real_benchmark`、`profiler_trace`。没有对应 trace、真实模型或固定 workload 时，不得把较低级别证据写成稳定 benchmark。
+
 ## 日常流程
 
 1. 先改 source。

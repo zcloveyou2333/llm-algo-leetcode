@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="460" viewBox="0 0 1200 460" role="img" aria-labelledby="title desc">
+  <title id="title">用对照实验检验瓶颈假设</title>
+  <desc id="desc">提出假设，固定实验条件，只改变一个变量，重复测量并判断证据是否支持假设。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 12 12" refX="10.5" refY="6" markerWidth="10" markerHeight="10" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M1 1L11 6L1 11Z" fill="#475569"/>
+    </marker>
+    <style>
+      text{font-family:"Noto Sans CJK SC","Microsoft YaHei",sans-serif;fill:#1f2937}
+      .title{font-size:28px;font-weight:700}.subtitle{font-size:16px;font-weight:500;fill:#475569}
+      .label{font-size:17px;font-weight:700}.small{font-size:14px;fill:#334155}
+      .panel{fill:#f8fafc;stroke:#cbd5e1;stroke-width:2;rx:20}.node{stroke-width:2;rx:14}
+      .flow{fill:none;stroke:#475569;stroke-width:2.5;marker-end:url(#arrow)}
+    </style>
+  </defs>
+
+  <rect width="1200" height="460" rx="20" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <text x="600" y="48" text-anchor="middle" class="title">用对照实验检验瓶颈假设</text>
+  <text x="600" y="80" text-anchor="middle" class="subtitle">每次只改变一个变量，再用重复测量判断原来的解释是否成立</text>
+  <rect x="35" y="115" width="1130" height="270" class="panel"/>
+
+  <rect x="55" y="190" width="165" height="110" class="node" fill="#dbeafe" stroke="#3b82f6"/>
+  <text x="137" y="226" text-anchor="middle" class="label">提出假设</text>
+  <text x="137" y="255" text-anchor="middle" class="small">指出一个主要约束</text>
+
+  <rect x="245" y="190" width="165" height="110" class="node" fill="#e0f2fe" stroke="#0284c7"/>
+  <text x="327" y="226" text-anchor="middle" class="label">固定条件</text>
+  <text x="327" y="255" text-anchor="middle" class="small">模型、硬件、workload</text>
+
+  <rect x="435" y="190" width="165" height="110" class="node" fill="#fef3c7" stroke="#d97706"/>
+  <text x="517" y="226" text-anchor="middle" class="label">只改一个变量</text>
+  <text x="517" y="255" text-anchor="middle" class="small">baseline 对 tuned</text>
+
+  <rect x="625" y="190" width="165" height="110" class="node" fill="#fef9c3" stroke="#ca8a04"/>
+  <text x="707" y="226" text-anchor="middle" class="label">重复测量</text>
+  <text x="707" y="255" text-anchor="middle" class="small">降低偶然波动影响</text>
+
+  <rect x="815" y="190" width="165" height="110" class="node" fill="#dcfce7" stroke="#16a34a"/>
+  <text x="897" y="226" text-anchor="middle" class="label">比较指标</text>
+  <text x="897" y="255" text-anchor="middle" class="small">时间、吞吐、显存、质量</text>
+
+  <rect x="1005" y="190" width="140" height="110" class="node" fill="#f3e8ff" stroke="#9333ea"/>
+  <text x="1075" y="226" text-anchor="middle" class="label">证据判断</text>
+  <text x="1075" y="255" text-anchor="middle" class="small">支持 / 不支持</text>
+
+  <path d="M220 245 H238" class="flow"/>
+  <path d="M410 245 H428" class="flow"/>
+  <path d="M600 245 H618" class="flow"/>
+  <path d="M790 245 H808" class="flow"/>
+  <path d="M980 245 H998" class="flow"/>
+</svg>

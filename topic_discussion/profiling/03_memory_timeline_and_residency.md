@@ -2,9 +2,9 @@
 
 ## 页面目标
 
-本节负责解释 memory timeline 在 profiling 里扮演什么角色，以及它和显存优化中的预算决策有什么区别。
+本节对应 **Task3：显存驻留与异常定位**。你将学习如何从 memory timeline 读取峰值、驻留和分配行为，并把它们与时间热点对齐。
 
-本节的输出是内存行为证据：峰值发生在哪个阶段、对象驻留多久、是否与时间热点重合。这里先定位原因，不直接承诺采用 checkpoint、offload 或量化。
+本节的输出是内存行为证据：峰值发生在哪个阶段、对象驻留多久、是否与时间热点重合。带着这些证据再进入显存策略或 benchmark 对照，而不是从一张时间线直接选择方案。
 
 ## 问题起点
 
@@ -42,7 +42,7 @@
 ## 对应 Part
 
 - [Part 00 · 18 显存分析与优化](../../00_Prerequisites/18_Memory_Profiling_and_Optimization.ipynb)
-- [Part 00 · 19 激活检查点与 Offload](../../00_Prerequisites/19_Activation_Checkpointing_and_Activation_Offload.ipynb)
+- [Part 00 · 19 调试与异常定位](../../00_Prerequisites/19_Debugging_and_Anomaly_Localization.ipynb)：确认显存异常是否同时伴随 shape、device 或数值问题。
 - [Part 00 · 20 Profiling 与显存账本](../../00_Prerequisites/20_Profiling_and_Memory_Ledger.ipynb)
 
 ## 本节要点

@@ -18,6 +18,7 @@
   <a href="./topic_discussion/profiling/intro.md">性能分析 / Performance Analysis</a> ·
   <a href="./topic_discussion/communication_parallel/intro.md">通信与并行 / Communication and Parallelism</a> ·
   <a href="./topic_discussion/multimodal/intro.md">多模态 / Multimodal（建设中 / In progress）</a> ·
+  <a href="./topic_discussion/deployment_heterogeneous/intro.md">部署与异构系统 / Deployment and Heterogeneous Systems（建设中 / In progress）</a> ·
   <a href="./topic_discussion/intro.md">查看全部专题 / All topics</a>
 </p>
 
@@ -53,7 +54,7 @@
 
 [topic_discussion](./topic_discussion/intro.md) 用于组织跨 Part 的专题路线，[team_study](./team_study/intro.md) 用于沉淀共学记录。页面顶部提供常用专题入口，下面的资产总览和专题总览分别说明主线结构与专题覆盖范围。
 
-![llm-algo-leetcode 教程主路线：从基础机制到系统决策](./public/readme/tutorial_roadmap.svg)
+![llm-algo-leetcode 教程主图：Part 00–04 与四条主路线](./public/decorative/tutorial_roadmap_hero_v4.svg)
 
 
 <details>
@@ -87,6 +88,7 @@
 | 横切支撑专题 | [`通信与并行（Communication and Parallelism）`](./topic_discussion/communication_parallel/intro.md) | NCCL、AllReduce、ZeRO、PP、TP 和并行验证。 | 想理解多卡训练和通信边界的学习者。 | ✅ 持续优化 |
 | 横切支撑专题 | [`性能分析（Performance Analysis）`](./topic_discussion/profiling/intro.md) | 性能取证、trace 阅读、回归验证和行动决策。 | 想系统补性能意识与排障方法的学习者。 | ✅ 持续优化 |
 | 横切支撑专题（建设中） | [`多模态（Multimodal）`](./topic_discussion/multimodal/intro.md) | 以多模态推理为主线，覆盖视觉表示、对齐、视觉 token、推理成本和任务评测；训练作为共享前置。 | 想进入视觉语言模型、文档理解或图文推理的学习者。 | 🛠 建设中 |
+| 横切支撑专题（建设中） | [`部署与异构系统（Deployment and Heterogeneous Systems）`](./topic_discussion/deployment_heterogeneous/intro.md) | 模型产物、推理 backend、CPU/GPU/NPU 协同、资源编排和部署验证。 | 想理解模型如何从文件进入可交付服务的学习者。 | 🛠 建设中 |
 | 基础支撑专题 | [`监督微调与训练工程（Supervised Fine-Tuning and Training Engineering）`](./topic_discussion/fine_tuning_training/intro.md) | SFT、LoRA、训练控制、数据工程和项目准备。 | 想补齐监督微调与训练工程基础的学习者。 | ✅ 持续优化 |
 | 基础支撑专题 | [`反向传播与训练机制（Backpropagation and Training Mechanics）`](./topic_discussion/backpropagation_training_mechanism/intro.md) | autograd、backward、checkpointing、offload 与训练节奏。 | 想补训练机制底座的学习者。 | ✅ 持续优化 |
 | 基础支撑专题 | [`大模型架构（Model Architecture）`](./topic_discussion/model_architecture/intro.md) | 结构演进、代表模型和 MoE / 稀疏化。 | 想补模型结构背景与横向对照的学习者。 | ✅ 持续优化 |
@@ -106,6 +108,7 @@
 <details>
 <summary>🆕 查看更新时间线</summary>
 
+- **2026-09-11**：完成四条主路线与横向专题的阶段性梳理，补充推理优化、显存优化的 Task0–6 学习入口与项目分工；统一项目节的类型、环境和证据边界，并完成源文件到 `docs/` 的镜像同步与 VitePress 构建验证。Part 02 的 60–76 项目仍在持续优化和 GPU 数据采集准备中。
 - **2026-08-22**：完成 README 首页导航、项目简介与项目特点重写；收口横向专题的五层 Infra 结构与跨专题边界；完成 66、73、75、76 等真实 backend / GPU 项目的结果保存、环境说明和基础验证，并同步文档入口与链接检查。
 - **2026-08-17**：统一 Part 01 导读与组页口径，收紧横向专题结构和学习路线表达，补充 Part 02 项目页与图解资产审计，并明确统一验证入口。
 - **2026-07-10**：整理首页教程总览与状态列，校正 Part 00 / Part 01 的组名、节数和导航状态。
@@ -243,7 +246,7 @@ This tutorial offers two ways to read: follow the `Part 00 -> Part 04` progressi
 
 [topic_discussion](./topic_discussion/intro.md) organizes cross-Part topic paths, while [team_study](./team_study/intro.md) stores collaborative-learning records. The top of the page provides common topic entries; the asset and topic overviews below describe the main structure and topic coverage.
 
-![Tutorial learning map: from Parts to problem-driven system paths](./public/readme/tutorial_roadmap.svg)
+![llm-algo-leetcode tutorial hero: Parts 00–04 and four main routes](./public/decorative/tutorial_roadmap_hero_v4.svg)
 
 <details>
 <summary>📚 View the complete asset overview</summary>
@@ -274,6 +277,7 @@ You do not need to start from `00` in strict order. `00` is the prerequisite lan
 | Cross-Cutting Topic | [Communication and Parallelism Topic](./topic_discussion/communication_parallel/intro.md) | NCCL, AllReduce, ZeRO, PP, TP, and validation. | Learners who want to understand multi-GPU scaling and communication cost. | ✅ Ongoing |
 | Cross-Cutting Topic | [Performance Analysis Topic](./topic_discussion/profiling/intro.md) | Evidence collection, trace reading, regression validation, and action decisions. | Learners who want systematic performance diagnosis and debugging methods. | ✅ Ongoing |
 | Cross-Cutting Topic (In Progress) | [Multimodal Topic](./topic_discussion/multimodal/intro.md) | Multimodal inference as the main line: visual representations, alignment, visual tokens, inference cost, and task evaluation; training is shared prerequisite. | Learners entering vision-language models, document understanding, or multimodal reasoning. | 🛠 In progress |
+| Cross-Cutting Topic (In Progress) | [Deployment and Heterogeneous Systems Topic](./topic_discussion/deployment_heterogeneous/intro.md) | Model artifacts, inference backends, CPU/GPU/NPU coordination, resource orchestration, and deployment validation. | Learners who want to understand how models become deployable services. | 🛠 In progress |
 | Foundation Topic | [Supervised Fine-Tuning and Training Engineering Topic](./topic_discussion/fine_tuning_training/intro.md) | SFT, LoRA, training control, data engineering, and project preparation. | Learners who want stronger supervised fine-tuning and training-engineering foundations. | ✅ Ongoing |
 | Foundation Topic | [Backpropagation and Training Mechanics Topic](./topic_discussion/backpropagation_training_mechanism/intro.md) | Autograd, backward, checkpointing, offload, and training rhythm. | Learners who want stronger training-mechanism foundations. | ✅ Ongoing |
 | Foundation Topic | [Model Architecture Topic](./topic_discussion/model_architecture/intro.md) | Structure evolution, representative models, and MoE/sparsity. | Learners who want structural background and model comparison. | ✅ Ongoing |
@@ -293,6 +297,7 @@ You do not need to start from `00` in strict order. `00` is the prerequisite lan
 <details>
 <summary>🆕 View update timeline</summary>
 
+- **2026-09-11**: Consolidated the four main learning routes and cross-cutting topics; added the Task 0–6 entry points and project roles for inference and memory optimization; unified project types, environments, and evidence boundaries; and completed source-to-`docs/` mirroring plus VitePress build validation. Part 02 projects 60–76 are still under refinement and preparing for GPU data collection.
 - **2026-08-22**: Revised the README navigation, project introduction, and project features; finalized the five-layer Infra structure and cross-topic boundaries; completed result saving, environment notes, and baseline validation for real backend / GPU projects including 66, 73, 75, and 76, together with documentation and link checks.
 - **2026-08-17**: Unified the Part 01 guides and group-page conventions, tightened the cross-topic structure and learning paths, reviewed Part 02 project pages and visual assets, and clarified the shared validation entry points.
 - **2026-07-10**: Refined the homepage tutorial overview and status columns, aligning the Part 00 / Part 01 group names, lesson counts, and navigation status.

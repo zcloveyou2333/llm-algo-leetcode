@@ -50,7 +50,7 @@ checkpointing / offload 不是同一个维度的方案：
 
 ## 对应来源
 
-- [Part 02 · 19 激活检查点与 Offload](../../02_PyTorch_Algorithms/19_Activation_Checkpointing_and_Activation_Offload.ipynb)
+- [Part 02 · 19 激活检查点](../../02_PyTorch_Algorithms/19_Activation_Checkpointing.ipynb)
 - [Part 02 · 42 激活 Offload](../../02_PyTorch_Algorithms/42_Activation_Offload.ipynb)
 
 ## 经典论文

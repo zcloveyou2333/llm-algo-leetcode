@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="650" viewBox="0 0 1400 650" role="img" aria-labelledby="title desc">
+  <title id="title">Checkpoint 粒度如何改变重算范围</title>
+  <desc id="desc">同一串 Transformer Block 中，checkpoint 边界越少，单次重算范围越长；边界越多，单次重算范围越短，但保存与管理开销增加。</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#64748b"/></marker>
+    <style>
+      text{font-family:"Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif;fill:#172033}
+      .title{font-size:29px;font-weight:700}.sub{font-size:15px;fill:#475569}
+      .lane{font-size:18px;font-weight:700}.label{font-size:15px;font-weight:700}.small{font-size:13px;fill:#475569}
+      .panel{stroke-width:2;rx:16}.flow{stroke:#64748b;stroke-width:2.3;fill:none;marker-end:url(#arrow)}
+      .block{fill:#fff;stroke:#94a3b8;stroke-width:1.5;rx:6}.boundary{stroke:#f59e0b;stroke-width:4}
+    </style>
+  </defs>
+
+  <rect width="1400" height="650" fill="#f8fafc"/>
+  <text x="70" y="48" class="title">Checkpoint 粒度：边界决定重算范围</text>
+  <text x="70" y="77" class="sub">沿着同一串 Block 移动 checkpoint 边界，观察保存点、重算区段与训练代价如何一起变化</text>
+
+  <rect x="70" y="112" width="300" height="88" class="panel" fill="#e0f2fe" stroke="#7dd3fc"/>
+  <text x="220" y="147" text-anchor="middle" class="lane">粒度参数</text>
+  <text x="220" y="174" text-anchor="middle" class="small">segment size：每个区段包含多少 Block</text>
+  <path d="M370 156H455" class="flow"/>
+
+  <rect x="455" y="112" width="520" height="88" class="panel" fill="#f1f5f9" stroke="#cbd5e1"/>
+  <text x="715" y="147" text-anchor="middle" class="lane">边界布置</text>
+  <text x="715" y="174" text-anchor="middle" class="small">边界少 → 重算区段长；边界多 → 重算区段短</text>
+  <path d="M975 156H1060" class="flow"/>
+
+  <rect x="1060" y="112" width="270" height="88" class="panel" fill="#ecfccb" stroke="#bef264"/>
+  <text x="1195" y="147" text-anchor="middle" class="lane">观测代价</text>
+  <text x="1195" y="174" text-anchor="middle" class="small">显存、重算时间、管理开销</text>
+
+  <rect x="70" y="235" width="1260" height="160" class="panel" fill="#eff6ff" stroke="#93c5fd"/>
+  <text x="105" y="270" class="lane">粗粒度：边界少</text>
+  <text x="105" y="294" class="small">保存点少，反向一次需要重算更长的连续区段</text>
+  <text x="105" y="350" class="label">前向 / 反向区段</text>
+  <g transform="translate(290 322)">
+    <rect x="0" y="0" width="70" height="48" class="block"/><text x="35" y="29" text-anchor="middle" class="small">B1</text>
+    <rect x="76" y="0" width="70" height="48" class="block"/><text x="111" y="29" text-anchor="middle" class="small">B2</text>
+    <rect x="152" y="0" width="70" height="48" class="block"/><text x="187" y="29" text-anchor="middle" class="small">B3</text>
+    <rect x="228" y="0" width="70" height="48" class="block"/><text x="263" y="29" text-anchor="middle" class="small">B4</text>
+    <rect x="304" y="0" width="70" height="48" class="block"/><text x="339" y="29" text-anchor="middle" class="small">B5</text>
+    <rect x="380" y="0" width="70" height="48" class="block"/><text x="415" y="29" text-anchor="middle" class="small">B6</text>
+    <line x1="0" y1="-9" x2="0" y2="57" class="boundary"/><line x1="456" y1="-9" x2="456" y2="57" class="boundary"/>
+    <text x="228" y="82" text-anchor="middle" class="small">一次重算 B1–B6</text>
+  </g>
+  <text x="1030" y="341" class="small">显存可能更低</text>
+  <text x="1030" y="365" class="small">但 step time 可能更高</text>
+
+  <rect x="70" y="425" width="1260" height="160" class="panel" fill="#f5f3ff" stroke="#c4b5fd"/>
+  <text x="105" y="460" class="lane">细粒度：边界多</text>
+  <text x="105" y="484" class="small">保存点多，反向每次只重算较短的连续区段</text>
+  <text x="105" y="540" class="label">前向 / 反向区段</text>
+  <g transform="translate(290 512)">
+    <rect x="0" y="0" width="70" height="48" class="block"/><text x="35" y="29" text-anchor="middle" class="small">B1</text>
+    <rect x="76" y="0" width="70" height="48" class="block"/><text x="111" y="29" text-anchor="middle" class="small">B2</text>
+    <rect x="152" y="0" width="70" height="48" class="block"/><text x="187" y="29" text-anchor="middle" class="small">B3</text>
+    <rect x="228" y="0" width="70" height="48" class="block"/><text x="263" y="29" text-anchor="middle" class="small">B4</text>
+    <rect x="304" y="0" width="70" height="48" class="block"/><text x="339" y="29" text-anchor="middle" class="small">B5</text>
+    <rect x="380" y="0" width="70" height="48" class="block"/><text x="415" y="29" text-anchor="middle" class="small">B6</text>
+    <line x1="0" y1="-9" x2="0" y2="57" class="boundary"/><line x1="146" y1="-9" x2="146" y2="57" class="boundary"/><line x1="298" y1="-9" x2="298" y2="57" class="boundary"/><line x1="456" y1="-9" x2="456" y2="57" class="boundary"/>
+    <text x="228" y="82" text-anchor="middle" class="small">分段重算 B1–B2、B3–B4、B5–B6</text>
+  </g>
+  <text x="1030" y="531" class="small">单次重算范围较小</text>
+  <text x="1030" y="555" class="small">但保存点与管理开销增加</text>
+
+  <text x="700" y="625" text-anchor="middle" class="sub">比较时记录 peak memory、step time、吞吐和保存点数量，不把粒度直接换算成固定节省比例</text>
+</svg>

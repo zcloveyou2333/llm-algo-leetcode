@@ -1,50 +1,18 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 760" role="img" aria-labelledby="title desc">
-  <title id="title">解码策略：从 logits 到下一个 token</title>
-  <desc id="desc">展示 logits 经温度缩放、Top-K 或 Top-p 候选筛选、概率重归一化后，进入 greedy 或 sampling 选择的过程。</desc>
-  <defs>
-    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#eff6ff"/><stop offset="1" stop-color="#f8fafc"/></linearGradient>
-    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#475569"/></marker>
-    <marker id="blueArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#2563eb"/></marker>
-    <style>
-      .title{font:700 30px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:500 17px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#475569}
-      .group{font:700 18px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#334155}.label{font:700 21px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#111827}.small{font:500 16px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#334155}.tiny{font:500 14px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#64748b}
-      .box{stroke-width:3;rx:18;ry:18}.flow{stroke:#475569;stroke-width:4;fill:none;marker-end:url(#arrow)}.branch{stroke:#2563eb;stroke-width:4;fill:none;marker-end:url(#blueArrow)}.dash{stroke:#94a3b8;stroke-width:2;stroke-dasharray:8 8;fill:none}
-    </style>
-  </defs>
-  <rect width="1600" height="760" fill="url(#bg)"/>
-  <text x="70" y="58" class="title">从 logits 到下一个 token：解码策略如何改变候选空间</text>
-  <text x="70" y="92" class="sub">先改变分数分布，再筛选候选，最后在重归一化概率上执行确定性或随机选择。</text>
-
-  <rect x="55" y="125" width="1490" height="315" rx="24" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
-  <text x="85" y="160" class="group">一次解码决策</text>
-
-  <rect x="90" y="220" width="220" height="125" class="box" fill="#dbeafe" stroke="#2563eb"/>
-  <text x="200" y="263" text-anchor="middle" class="label">Logits</text><text x="200" y="295" text-anchor="middle" class="small">词表上的原始分数</text><text x="200" y="322" text-anchor="middle" class="tiny">还不是概率</text>
-  <rect x="390" y="220" width="230" height="125" class="box" fill="#fef3c7" stroke="#d97706"/>
-  <text x="505" y="263" text-anchor="middle" class="label">Temperature</text><text x="505" y="295" text-anchor="middle" class="small">logits ÷ T</text><text x="505" y="322" text-anchor="middle" class="tiny">改变尖锐程度，不改排序</text>
-
-  <rect x="700" y="185" width="250" height="105" class="box" fill="#dcfce7" stroke="#16a34a"/>
-  <text x="825" y="225" text-anchor="middle" class="label">Top-K</text><text x="825" y="256" text-anchor="middle" class="small">固定保留 K 个候选</text><text x="825" y="280" text-anchor="middle" class="tiny">按分数阈值屏蔽</text>
-  <rect x="700" y="320" width="250" height="105" class="box" fill="#ecfccb" stroke="#65a30d"/>
-  <text x="825" y="360" text-anchor="middle" class="label">Top-p</text><text x="825" y="391" text-anchor="middle" class="small">按累计概率动态截断</text><text x="825" y="415" text-anchor="middle" class="tiny">保留边界 token</text>
-
-  <rect x="1030" y="220" width="230" height="125" class="box" fill="#f5f3ff" stroke="#8b5cf6"/>
-  <text x="1145" y="263" text-anchor="middle" class="label">重归一化</text><text x="1145" y="295" text-anchor="middle" class="small">Softmax</text><text x="1145" y="322" text-anchor="middle" class="tiny">候选概率重新求和为 1</text>
-  <rect x="1340" y="185" width="160" height="105" class="box" fill="#fce7f3" stroke="#db2777"/>
-  <text x="1420" y="225" text-anchor="middle" class="label">greedy</text><text x="1420" y="258" text-anchor="middle" class="small">取最大值</text><text x="1420" y="280" text-anchor="middle" class="tiny">确定性</text>
-  <rect x="1340" y="320" width="160" height="105" class="box" fill="#fee2e2" stroke="#dc2626"/>
-  <text x="1420" y="360" text-anchor="middle" class="label">sampling</text><text x="1420" y="393" text-anchor="middle" class="small">按概率抽样</text><text x="1420" y="415" text-anchor="middle" class="tiny">可复现的随机性</text>
-
-  <path d="M310 282H390" class="flow"/><text x="350" y="264" text-anchor="middle" class="tiny">缩放</text>
-  <path d="M620 270C660 270 660 238 700 238" class="branch"/><path d="M620 295C660 295 660 372 700 372" class="branch"/>
-  <text x="650" y="226" class="tiny">固定候选数</text><text x="650" y="388" class="tiny">累计概率</text>
-  <path d="M950 238C990 238 990 270 1030 270" class="flow"/><path d="M950 372C990 372 990 300 1030 300" class="flow"/>
-  <path d="M1260 270C1300 270 1300 238 1340 238" class="flow"/><path d="M1260 300C1300 300 1300 372 1340 372" class="flow"/>
-  <path d="M1420 290V320" class="dash"/>
-
-  <rect x="55" y="485" width="1490" height="205" rx="24" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
-  <text x="85" y="520" class="group">观察同一组 logits 时，策略分别改变什么</text>
-  <rect x="90" y="550" width="400" height="95" class="box" fill="#ffffff" stroke="#93c5fd"/><text x="290" y="586" text-anchor="middle" class="label">候选数量</text><text x="290" y="618" text-anchor="middle" class="small">Top-K 固定，Top-p 随分布变化</text>
-  <rect x="600" y="550" width="400" height="95" class="box" fill="#ffffff" stroke="#fcd34d"/><text x="800" y="586" text-anchor="middle" class="label">分布形状</text><text x="800" y="618" text-anchor="middle" class="small">Temperature 改变熵与尖锐程度</text>
-  <rect x="1110" y="550" width="400" height="95" class="box" fill="#ffffff" stroke="#f9a8d4"/><text x="1310" y="586" text-anchor="middle" class="label">输出行为</text><text x="1310" y="618" text-anchor="middle" class="small">greedy 稳定，sampling 引入多样性</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="560" viewBox="0 0 1500 560" role="img" aria-labelledby="title desc">
+<title id="title">解码策略：从 logits 到下一个 token</title><desc id="desc">logits 经过温度调整后，可进入 Top-K 或 Top-p 候选筛选，再经过重整化，最后由 greedy 或 sampling 选择下一个 token。</desc>
+<defs><style>text{font-family:"Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif;fill:#172033}.title{font-size:29px;font-weight:700}.sub{font-size:15px;fill:#475569}.label{font-size:18px;font-weight:700}.small{font-size:13px;fill:#475569}.box{stroke-width:2.5;rx:18}.flow{stroke:#64748b;stroke-width:2.5;fill:none}.arrow{fill:#64748b}.branch{stroke:#2563eb;stroke-width:2.5;fill:none}.branchArrow{fill:#2563eb}</style></defs>
+<rect width="1500" height="560" fill="#f8fafc"/>
+<text x="750" y="42" text-anchor="middle" class="title">从 logits 到下一个 token</text><text x="750" y="70" text-anchor="middle" class="sub">先改变分布或候选空间，再决定输出的确定性与多样性</text>
+<rect x="55" y="205" width="210" height="110" class="box" fill="#dbeafe" stroke="#3b82f6"/><text x="160" y="250" text-anchor="middle" class="label">Logits</text><text x="160" y="279" text-anchor="middle" class="small">词表上的原始分数</text>
+<path d="M265 260H345" class="flow"/><polygon points="351,260 339,254 339,266" class="arrow"/>
+<rect x="345" y="205" width="230" height="110" class="box" fill="#fef3c7" stroke="#d97706"/><text x="460" y="250" text-anchor="middle" class="label">Temperature</text><text x="460" y="279" text-anchor="middle" class="small">改变分布尖锐程度</text>
+<path d="M575 260H640V190H715M575 260H640V330H715" class="branch"/><polygon points="721,190 709,184 709,196" class="branchArrow"/><polygon points="721,330 709,324 709,336" class="branchArrow"/>
+<rect x="715" y="140" width="230" height="100" class="box" fill="#dcfce7" stroke="#16a34a"/><text x="830" y="181" text-anchor="middle" class="label">Top-K</text><text x="830" y="210" text-anchor="middle" class="small">固定保留 K 个候选</text>
+<rect x="715" y="280" width="230" height="100" class="box" fill="#ecfccb" stroke="#65a30d"/><text x="830" y="321" text-anchor="middle" class="label">Top-p</text><text x="830" y="350" text-anchor="middle" class="small">按累计概率动态截断</text>
+<path d="M945 190H1005V260M945 330H1005V260H1060" class="flow"/><polygon points="1066,260 1054,254 1054,266" class="arrow"/>
+<rect x="1030" y="205" width="200" height="110" class="box" fill="#f5f3ff" stroke="#8b5cf6"/><text x="1130" y="250" text-anchor="middle" class="label">重整化</text><text x="1130" y="279" text-anchor="middle" class="small">候选概率重新归一化</text>
+<path d="M1230 260H1280V190H1320M1230 260H1280V330H1320" class="flow"/>
+<rect x="1320" y="140" width="140" height="100" class="box" fill="#fce7f3" stroke="#db2777"/><text x="1390" y="181" text-anchor="middle" class="label">greedy</text><text x="1390" y="210" text-anchor="middle" class="small">取最大值</text>
+<rect x="1320" y="280" width="140" height="100" class="box" fill="#fee2e2" stroke="#dc2626"/><text x="1390" y="321" text-anchor="middle" class="label">sampling</text><text x="1390" y="350" text-anchor="middle" class="small">按概率抽样</text>
+<polygon points="345,260 333,254 333,266" class="arrow"/><polygon points="715,190 703,184 703,196" class="branchArrow"/><polygon points="715,330 703,324 703,336" class="branchArrow"/><polygon points="1036,260 1024,254 1024,266" class="arrow"/><polygon points="1320,190 1308,184 1308,196" class="arrow"/><polygon points="1320,330 1308,324 1308,336" class="arrow"/>
 </svg>

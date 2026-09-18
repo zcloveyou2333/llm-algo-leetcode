@@ -483,6 +483,6 @@ print(json.dumps(result, ensure_ascii=False, indent=2))
 完成 W8A16 的最小实现后，可以继续阅读量化校准方法和真实部署 backend。
 - [SmoothQuant 原论文](https://arxiv.org/abs/2211.10438)
 - [PyTorch 量化文档](https://pytorch.org/docs/stable/quantization.html)
-- [26. QLoRA and 4bit Quantization | QLoRA 与 4-bit 量化](./26_QLoRA_and_4bit_Quantization.md)
+- [26. QLoRA and 4-bit Quantization | QLoRA 与 4-bit 量化](./26_QLoRA_and_4bit_Quantization.md)
 - [40. GPTQ and AWQ Weight Quantization | GPTQ 与 AWQ 权重量化](./40_GPTQ_and_AWQ_Weight_Quantization.md)
 - [67. Quantized Inference and Deployment | 量化推理与部署](./67_Quantized_Inference_and_Deployment.md)

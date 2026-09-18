@@ -25,7 +25,7 @@
 - [70. Serving Scheduler Benchmark | 推理服务调度基准](./70_Serving_Scheduler_Benchmark.md)
 - [79. Distributed Parallel Benchmark | 分布式并行基准项目](./79_Distributed_Parallel_Benchmark.md)
 
-## 相关阅读
+## 相关项目入口
 
 **导语：** 完成分布式推理逻辑验证后，用 80 补充 MoE 专家并行对照；如果准备进入真实部署，先用 74 的 profiling 闭环检查迁移收益。
 - [80. MoE Expert Parallel Benchmark | MoE 专家并行基准](./80_MoE_Expert_Parallel_Benchmark.md)
@@ -289,3 +289,15 @@ def recommend_distributed_inference_run(
 - 实现方式：先比较基线与 makespan 的加速，再按 imbalance ratio 和 comm ratio 输出 `accept / tune / reject`。
 - 关键点：`tune` 主要对应已有迁移收益，但路由策略、并行切分度或副本配置还没有一起收稳。
 - 项目意义：分布式推理项目最后要回答的是“值不值得迁移到真实集群”，而不是只看单次逻辑模拟有没有加速。
+
+## 相关阅读
+
+以下资料按“分布式推理架构 → 推理系统实现 → 多卡证据”排列，用于把本节的路由、makespan 和通信成本连接到真实部署。
+
+- [Megatron-LM 论文：大规模 Transformer 并行训练与推理基础](https://arxiv.org/abs/1909.08053)
+- [vLLM 官方仓库](https://github.com/vllm-project/vllm)
+- [SGLang 官方仓库](https://github.com/sgl-project/sglang)
+- [PyTorch Distributed 官方文档](https://pytorch.org/docs/stable/distributed.html)
+- [79 分布式并行基准](./79_Distributed_Parallel_Benchmark.md)
+- [80 MoE 专家并行基准](./80_MoE_Expert_Parallel_Benchmark.md)
+- [74 Profiling 驱动的端到端优化](./74_Profiling_Driven_End_to_End_Optimization.md)

@@ -56,10 +56,11 @@
 
 这张图把 Cache 的增长、复用和调度边界放在一起；它用于判断瓶颈位置，不替代真实 backend 的命中率、并发和显存测量。
 
-## 第四段：Cache 边界暴露后，Serving 调度成为系统问题
+## 第四段：Cache 边界暴露后，Serving 调度成为系统问题（对应正文 07）
 
 当 Cache 管理已经不能单独解决问题，新的瓶颈通常出现在请求之间：长 Prompt 的 Prefill 会带来突发计算，Decode 则需要持续获得稳定的计算和 Cache 访问。如果两类请求共享同一调度策略，TTFT、TPOT 和 P99 可能互相牵制。
 
+- Part 02 [36 Decode Scheduling](../../02_PyTorch_Algorithms/36_Decode_Scheduling.md)
 - Part 02 [37 KV Cache Scheduling](../../02_PyTorch_Algorithms/37_KV_Cache_Scheduling.md)
 - Part 02 [38 Prefill / Decode Disaggregation](../../02_PyTorch_Algorithms/38_Prefill_Decode_Disaggregation.md)
 - Part 02 [70 Serving Scheduler Benchmark](../../02_PyTorch_Algorithms/70_Serving_Scheduler_Benchmark.md)

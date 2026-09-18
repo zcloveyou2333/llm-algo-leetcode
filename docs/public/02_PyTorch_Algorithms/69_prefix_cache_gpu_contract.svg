@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1680" height="560" viewBox="0 0 1680 560">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L10,3 L0,6 Z" fill="#64748b"/>
+    </marker>
+    <style>
+      .title{font:700 28px sans-serif;fill:#0f172a}
+      .group{font:700 18px sans-serif;fill:#334155}
+      .label{font:700 17px sans-serif;fill:#0f172a}
+      .text{font:14px sans-serif;fill:#334155}
+      .box{stroke:#94a3b8;stroke-width:2;rx:14}
+      .metric{stroke:#cbd5e1;stroke-width:1.5;rx:9}
+      .flow{stroke:#64748b;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+
+  <rect width="1680" height="560" fill="#f8fafc"/>
+  <text x="840" y="42" text-anchor="middle" class="title">前缀缓存真实实验：固定条件、双组对照与证据记录</text>
+
+  <rect x="35" y="205" width="230" height="135" class="box" fill="#e0f2fe"/>
+  <text x="150" y="243" text-anchor="middle" class="label">环境契约</text>
+  <text x="150" y="273" text-anchor="middle" class="text">模型 revision / backend</text>
+  <text x="150" y="298" text-anchor="middle" class="text">GPU / PyTorch / CUDA</text>
+
+  <rect x="325" y="205" width="250" height="135" class="box" fill="#fef3c7"/>
+  <text x="450" y="243" text-anchor="middle" class="label">固定 workload</text>
+  <text x="450" y="273" text-anchor="middle" class="text">共享前缀与变化后缀</text>
+  <text x="450" y="298" text-anchor="middle" class="text">生成长度 / 并发 / warmup</text>
+
+  <rect x="635" y="105" width="245" height="135" class="box" fill="#dcfce7"/>
+  <text x="757" y="143" text-anchor="middle" class="label">G0 baseline</text>
+  <text x="757" y="173" text-anchor="middle" class="text">cache off</text>
+  <text x="757" y="198" text-anchor="middle" class="text">建立无缓存参照</text>
+
+  <rect x="635" y="315" width="245" height="135" class="box" fill="#dcfce7"/>
+  <text x="757" y="353" text-anchor="middle" class="label">G1 candidate</text>
+  <text x="757" y="383" text-anchor="middle" class="text">prefix cache policy</text>
+  <text x="757" y="408" text-anchor="middle" class="text">只改变缓存开关</text>
+
+  <rect x="940" y="105" width="300" height="345" class="box" fill="#fce7f3"/>
+  <text x="1090" y="143" text-anchor="middle" class="group">统一证据</text>
+  <text x="1090" y="172" text-anchor="middle" class="text">两组使用同一测量口径</text>
+  <rect x="970" y="205" width="110" height="82" class="metric" fill="#fff1f2"/>
+  <text x="1025" y="237" text-anchor="middle" class="label">命中</text>
+  <text x="1025" y="263" text-anchor="middle" class="text">metrics / 日志</text>
+  <rect x="1095" y="205" width="110" height="82" class="metric" fill="#fff1f2"/>
+  <text x="1150" y="237" text-anchor="middle" class="label">延迟</text>
+  <text x="1150" y="263" text-anchor="middle" class="text">TTFT / TPOT</text>
+  <rect x="970" y="310" width="110" height="82" class="metric" fill="#fff1f2"/>
+  <text x="1025" y="342" text-anchor="middle" class="label">服务</text>
+  <text x="1025" y="368" text-anchor="middle" class="text">吞吐 / P99</text>
+  <rect x="1095" y="310" width="110" height="82" class="metric" fill="#fff1f2"/>
+  <text x="1150" y="342" text-anchor="middle" class="label">资源</text>
+  <text x="1150" y="368" text-anchor="middle" class="text">显存 / 淘汰</text>
+
+  <rect x="1300" y="205" width="330" height="135" class="box" fill="#ede9fe"/>
+  <text x="1465" y="243" text-anchor="middle" class="label">JSON benchmark 证据</text>
+  <text x="1465" y="273" text-anchor="middle" class="text">环境、配置、原始结果</text>
+  <text x="1465" y="298" text-anchor="middle" class="text">quality / evidence / decision</text>
+
+  <path d="M265 272 L320 272" class="flow"/>
+  <path d="M575 272 L605 272 L605 172 L630 172" class="flow"/>
+  <path d="M575 272 L605 272 L605 382 L630 382" class="flow"/>
+  <path d="M880 172 L910 172 L910 245 L935 245" class="flow"/>
+  <path d="M880 382 L910 382 L910 350 L935 350" class="flow"/>
+  <path d="M1240 272 L1295 272" class="flow"/>
+</svg>

@@ -26,7 +26,7 @@
 - [10. LoRA Tutorial | LoRA 教程](./10_LoRA_Tutorial.md)
 - [11. LR Schedulers WSD Cosine | WSD 余弦学习率调度器](./11_LR_Schedulers_WSD_Cosine.md)
 - [13. End-to-End Fine-Tuning Experiment | 端到端微调实验](./13_End_to_End_Fine_Tuning_Experiment.md)
-
+---
 
 ### Step 1：先把交付问题和对照组定下来
 
@@ -397,9 +397,12 @@ if RUN_PROJECT_EXPORT:
 
 ## 相关阅读
 
-完成模板、评测和交付判断后，可以继续阅读 Transformers / TRL 的训练接口，并将结果延伸到参数高效微调和偏好优化。
+以下资料按“指令微调论文 → 开源训练实现 → 后续项目”排列，用于把数据模板、训练接口和交付指标连接到真实训练流程。
+
+- [FLAN 论文：Finetuned Language Models Are Zero-Shot Learners](https://arxiv.org/abs/2109.01652)
 
 - [Hugging Face TRL 官方仓库](https://github.com/huggingface/trl)
+- [Hugging Face Transformers 官方仓库](https://github.com/huggingface/transformers)
 - [Transformers Trainer 官方文档](https://huggingface.co/docs/transformers/main/en/main_classes/trainer)
 - [63. LoRA Variants Benchmark | LoRA 变体对比项目](./63_LoRA_Variants_Benchmark.md)
 - [84. DPO Preference Project | DPO 偏好优化项目](./84_DPO_Preference_Project.md)

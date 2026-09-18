@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1660 820" role="img" aria-labelledby="title desc">
-  <title id="title">QLoRA 4-bit training flow</title>
-  <desc id="desc">Shows 4-bit NF4 base weights, dequantization for forward, and a trainable LoRA branch for updates.</desc>
+  <title id="title">QLoRA：低比特底座与可训练适配器</title>
+  <desc id="desc">概念图展示冻结的 NF4 底座、反量化前向、LoRA 可训练分支以及只更新适配器的梯度路径。</desc>
   <defs>
     <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
       <stop offset="0%" stop-color="#f8fafc"/>
@@ -9,62 +9,74 @@
     <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
       <path d="M 0 0 L 10 5 L 0 10 z" fill="#475569"/>
     </marker>
+    <marker id="pink-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#db2777"/>
+    </marker>
     <style>
-      .title { font: 700 30px "Inter", "Noto Sans SC", sans-serif; fill: #0f172a; }
-      .sub { font: 500 16px "Inter", "Noto Sans SC", sans-serif; fill: #475569; }
-      .label { font: 700 18px "Inter", "Noto Sans SC", sans-serif; fill: #111827; }
-      .small { font: 500 14px "Inter", "Noto Sans SC", sans-serif; fill: #334155; }
-      .box { fill: #ffffff; stroke-width: 3; rx: 16; ry: 16; }
+      .title { font: 700 30px "Noto Sans SC", "Inter", sans-serif; fill: #0f172a; }
+      .sub { font: 500 16px "Noto Sans SC", "Inter", sans-serif; fill: #475569; }
+      .group { font: 700 18px "Noto Sans SC", "Inter", sans-serif; fill: #334155; }
+      .label { font: 700 18px "Noto Sans SC", "Inter", sans-serif; fill: #111827; }
+      .small { font: 500 14px "Noto Sans SC", "Inter", sans-serif; fill: #334155; }
+      .box { stroke-width: 3; rx: 16; ry: 16; }
       .arrow { stroke: #475569; stroke-width: 4; fill: none; marker-end: url(#arrow); }
-      .dash { stroke: #db2777; stroke-width: 4; fill: none; stroke-dasharray: 8 6; marker-end: url(#arrow); }
+      .dash { stroke: #db2777; stroke-width: 4; fill: none; stroke-dasharray: 9 7; marker-end: url(#pink-arrow); }
     </style>
   </defs>
   <rect width="1660" height="820" fill="url(#bg)"/>
-  <text x="64" y="66" class="title">QLoRA: 4-bit base weights + trainable LoRA branch</text>
-  <text x="64" y="96" class="sub">The base model is compressed to NF4, while the low-rank adapter keeps learning in higher precision.</text>
+  <text x="70" y="64" class="title">QLoRA：低比特底座与可训练适配器</text>
+  <text x="70" y="96" class="sub">存储路径压缩底座，计算路径临时恢复精度，学习路径只更新 LoRA 适配器。</text>
 
-  <rect x="80" y="170" width="260" height="120" class="box" fill="#eff6ff" stroke="#3b82f6"/>
-  <text x="210" y="206" text-anchor="middle" class="label">Frozen base model</text>
-  <text x="210" y="236" text-anchor="middle" class="small">weights stored as NF4</text>
-  <text x="210" y="262" text-anchor="middle" class="small">scale / codebook metadata</text>
+  <rect x="55" y="135" width="1550" height="310" rx="24" fill="#eff6ff" stroke="#bfdbfe" stroke-width="2"/>
+  <text x="85" y="175" class="group">底座存储与前向计算</text>
 
-  <rect x="410" y="170" width="250" height="120" class="box" fill="#ecfccb" stroke="#65a30d"/>
-  <text x="535" y="206" text-anchor="middle" class="label">Dequantize</text>
-  <text x="535" y="236" text-anchor="middle" class="small">NF4 -> fp16 / bf16</text>
-  <text x="535" y="262" text-anchor="middle" class="small">just in time for compute</text>
+  <rect x="90" y="215" width="270" height="130" class="box" fill="#ffffff" stroke="#3b82f6"/>
+  <text x="225" y="254" text-anchor="middle" class="label">冻结底座</text>
+  <text x="225" y="282" text-anchor="middle" class="small">权重存储为 NF4</text>
+  <text x="225" y="308" text-anchor="middle" class="small">scale / codebook 元数据</text>
 
-  <rect x="720" y="170" width="240" height="120" class="box" fill="#f5f3ff" stroke="#8b5cf6"/>
-  <text x="840" y="206" text-anchor="middle" class="label">Forward matmul</text>
-  <text x="840" y="236" text-anchor="middle" class="small">normal activation path</text>
-  <text x="840" y="262" text-anchor="middle" class="small">same layer behavior</text>
+  <rect x="430" y="215" width="270" height="130" class="box" fill="#ffffff" stroke="#65a30d"/>
+  <text x="565" y="254" text-anchor="middle" class="label">NF4 表示</text>
+  <text x="565" y="282" text-anchor="middle" class="small">非均匀 4-bit 编码</text>
+  <text x="565" y="308" text-anchor="middle" class="small">码本与缩放因子共同解释</text>
 
-  <rect x="1010" y="170" width="250" height="120" class="box" fill="#ecfeff" stroke="#0891b2"/>
-  <text x="1135" y="206" text-anchor="middle" class="label">LoRA branch</text>
-  <text x="1135" y="236" text-anchor="middle" class="small">rank-r adapter</text>
-  <text x="1135" y="262" text-anchor="middle" class="small">trainable update path</text>
+  <rect x="770" y="215" width="270" height="130" class="box" fill="#ffffff" stroke="#8b5cf6"/>
+  <text x="905" y="254" text-anchor="middle" class="label">按需反量化</text>
+  <text x="905" y="282" text-anchor="middle" class="small">NF4 → FP16 / BF16</text>
+  <text x="905" y="308" text-anchor="middle" class="small">恢复到计算表示</text>
 
-  <rect x="1320" y="170" width="260" height="120" class="box" fill="#fff1f2" stroke="#db2777"/>
-  <text x="1450" y="206" text-anchor="middle" class="label">Output merge</text>
-  <text x="1450" y="236" text-anchor="middle" class="small">base + adapter delta</text>
-  <text x="1450" y="262" text-anchor="middle" class="small">backprop only into LoRA</text>
+  <rect x="1110" y="215" width="270" height="130" class="box" fill="#ffffff" stroke="#0891b2"/>
+  <text x="1245" y="254" text-anchor="middle" class="label">基座前向</text>
+  <text x="1245" y="282" text-anchor="middle" class="small">激活保持正常计算路径</text>
+  <text x="1245" y="308" text-anchor="middle" class="small">产生底座输出</text>
 
-  <path d="M 340 230 L 410 230" class="arrow"/>
-  <path d="M 660 230 L 720 230" class="arrow"/>
-  <path d="M 960 230 L 1010 230" class="arrow"/>
-  <path d="M 1260 230 L 1320 230" class="arrow"/>
+  <path d="M 360 280 L 430 280" class="arrow"/>
+  <path d="M 700 280 L 770 280" class="arrow"/>
+  <path d="M 1040 280 L 1110 280" class="arrow"/>
 
-  <path d="M 1135 290 C 1135 390 535 390 535 290" class="dash"/>
-  <path d="M 1450 290 C 1450 400 1135 400 1135 290" class="dash"/>
+  <rect x="55" y="495" width="1550" height="235" rx="24" fill="#ecfeff" stroke="#a5f3fc" stroke-width="2"/>
+  <text x="85" y="535" class="group">可训练分支与输出合并</text>
 
-  <rect x="90" y="350" width="1470" height="180" class="box" fill="#ffffff" stroke="#cbd5e1"/>
-  <text x="120" y="388" class="label">Why this is more than plain 4-bit quantization</text>
-  <text x="120" y="422" class="small">1. NF4 compresses the base model, but the model still needs a trainable path for adaptation.</text>
-  <text x="120" y="452" class="small">2. the LoRA branch keeps higher precision and receives almost all gradient updates.</text>
-  <text x="120" y="482" class="small">3. double quantization reduces metadata overhead on top of the 4-bit weights.</text>
-  <text x="820" y="422" class="small">4. the diagram should make the split between storage path and learning path explicit.</text>
-  <text x="820" y="452" class="small">5. this is the bridge from 25 to the project pages that actually fine-tune a model.</text>
+  <rect x="180" y="570" width="310" height="110" class="box" fill="#ffffff" stroke="#14b8a6"/>
+  <text x="335" y="607" text-anchor="middle" class="label">LoRA 适配器</text>
+  <text x="335" y="635" text-anchor="middle" class="small">低秩 rank-r · 高精度存储</text>
+  <text x="335" y="661" text-anchor="middle" class="small">唯一接收主要梯度更新</text>
 
-  <rect x="90" y="570" width="1470" height="140" class="box" fill="#fffef2" stroke="#cbd5e1"/>
-  <text x="120" y="608" class="label">Reading rule</text>
-  <text x="120" y="642" class="small">The base is compressed for memory, the adapter is kept trainable for learning, and the merge step explains why inference can stay simple.</text>
+  <rect x="610" y="570" width="310" height="110" class="box" fill="#ffffff" stroke="#f59e0b"/>
+  <text x="765" y="607" text-anchor="middle" class="label">适配器增量</text>
+  <text x="765" y="635" text-anchor="middle" class="small">计算 ΔW x</text>
+  <text x="765" y="661" text-anchor="middle" class="small">与底座输出并行形成</text>
+
+  <rect x="1040" y="570" width="310" height="110" class="box" fill="#ffffff" stroke="#db2777"/>
+  <text x="1195" y="607" text-anchor="middle" class="label">输出与损失</text>
+  <text x="1195" y="635" text-anchor="middle" class="small">底座输出 + 适配器增量</text>
+  <text x="1195" y="661" text-anchor="middle" class="small">反向只更新 LoRA</text>
+
+  <path d="M 1245 345 C 1245 470 1195 470 1195 570" class="arrow"/>
+  <path d="M 490 625 L 610 625" class="arrow"/>
+  <path d="M 920 625 L 1040 625" class="arrow"/>
+  <path d="M 1195 570 C 1195 505 335 505 335 570" class="dash"/>
+
+  <text x="1375" y="608" class="small" fill="#be185d">虚线：梯度更新路径</text>
+  <text x="1375" y="635" class="small">实线：前向数据路径</text>
 </svg>

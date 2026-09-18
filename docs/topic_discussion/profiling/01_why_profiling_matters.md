@@ -2,9 +2,9 @@
 
 ## 页面目标
 
-本节先解释 profiling 的目标：不是“多看图”，而是把一个性能猜测变成证据链。
+本节对应 **Task0：定义问题与测量对象**。你将把“变慢”改写成可以测量、比较和复查的问题，而不是直接从 profiler 图中猜一个热点。
 
-本节的输出是一份最小问题定义：现象、影响指标、可能边界和需要采集的证据。完成后再进入时间拆分，而不是直接猜具体 kernel。
+本节的输出是一份最小问题定义：现象、影响指标、待验证假设和需要采集的证据。完成后，带着这份定义进入 Task1 的 baseline 测量。
 
 ## 问题起点
 
@@ -46,7 +46,7 @@ profiling 想得到更可靠的判断，但代价是：
 
 ## 对应 Part
 
-- [Part 00 · 0E 调试基础](../../00_Prerequisites/0E.md)、[Part 00 · 17 Profiling 基础](../../00_Prerequisites/17_PyTorch_Profiling_Basics.md)、[Part 00 · 20 Profiling 与显存账本](../../00_Prerequisites/20_Profiling_and_Memory_Ledger.md)：Profiling 的入门和前置桥。
+- [Part 00 · 0E 调试基础](../../00_Prerequisites/0E.md)、[Part 00 · 17 Profiling 基础](../../00_Prerequisites/17_PyTorch_Profiling_Basics.md)、[Part 00 · 20 Profiling 与显存账本](../../00_Prerequisites/20_Profiling_and_Memory_Ledger.md)：分别提供问题入口、时间观察和证据收束。
 - [Part 02 · 74 Profiling 驱动的端到端优化](../../02_PyTorch_Algorithms/74_Profiling_Driven_End_to_End_Optimization.md)：显存优化路线的最终收口；[Part 02 · 79 分布式并行基准测试](../../02_PyTorch_Algorithms/79_Distributed_Parallel_Benchmark.md) 和 [Part 02 · 46 NCCL 通信性能分析](../../02_PyTorch_Algorithms/46_Communication_Profiling_with_NCCL.md)：分布式和通信场景的延伸。
 
 ## 本节要点

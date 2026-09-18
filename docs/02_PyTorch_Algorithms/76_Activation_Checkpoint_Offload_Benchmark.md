@@ -14,61 +14,46 @@
 
 ## 本节导读
 
-本节承接 73 的 baseline，比较 checkpoint、offload 和组合方案在同一训练 workload 下的实际代价。主线报告固定模型、输入和训练口径；高压力 workload、不同 seq_len 或 dtype 属于扩展，必须单独记录。结果交给 75 做预算决策，本节不直接裁决。
-**主责与复用边界：** 本项目主责是训练侧 activation 策略的同口径比较；73 提供 baseline，75 负责预算决策，74 负责 trace 解释。推理 KV Cache、量化格式和分布式切分不在本项目内重复实现。
-
-> 运行提示：先查看[使用指南中的项目环境预检与安装说明](../guide.md#项目环境预检与安装)，再打开真实 GPU 开关。CPU 路径只检查正确性；真实 GPU 路径必须先通过预检。
+前面的内容介绍了激活值如何参与反向传播，以及保存、重算和搬运之间的代价。本节围绕同一训练任务比较 checkpoint、offload 和组合方案，观察它们如何改变显存占用、训练速度和运行稳定性。完成后，你应能根据显存压力和速度代价判断哪种策略值得继续验证。
 
 **关键词：** `activation`, `checkpoint`, `offload`, `memory`, `benchmark`
 
 ---
 ## 前置阅读
 
-**导语：** 先完成 checkpoint、offload 等训练侧显存机制学习，并阅读 73 了解统一测量口径，再进入这个项目；本节默认你已经知道这些技巧各自怎么省显存，重点转向在同一训练任务下测量哪种方案更值。
+**导语：** 先理解 checkpoint 和 offload 如何改变激活值的保存与计算，再参考 73 节的测量口径，比较同一训练任务下不同策略的显存收益和速度代价。
 - [19. Activation Checkpointing | 激活检查点](./19_Activation_Checkpointing_and_Activation_Offload.md)
 - [42. Activation Offload | 激活卸载](./42_Activation_Offload.md)
-- [43. Unified Memory Management | 统一内存管理](./43_Unified_Memory_Management.md)
 - [73. Training Performance Analysis | 训练性能分析](./73_Training_Performance_Analysis.md)
 
 
-## 相关阅读
-
-**导语：** 完成 checkpoint / offload 对照并保存报告后，先把结果交给 75 完成训练侧预算决策，再由 74 使用 profiling 对显存优化方案做端到端最终验证。
-- [75. Memory Budget Compression Project | 显存预算压缩项目](./75_Memory_Budget_Compression_Project.md)
-- [74. Profiling Driven End-to-End Optimization | Profiling 驱动的端到端优化](./74_Profiling_Driven_End_to_End_Optimization.md)
-
 ---
-### Step 1：显存策略与机制假设
-训练前向过程中会产生中间激活值，反向传播需要再次读取其中一部分。四种策略的区别，就是决定这些激活值留在哪里、是否重新计算，以及是否在 CPU 和 GPU 之间搬运。Step 1 先明确实验目标和对照条件，再用图片理解策略差异。
+### Step 1：确定显存策略与实验输入输出
+训练前向会产生反向传播需要的激活值。本节固定同一训练任务，只比较激活值的保存、重算和搬运方式，观察显存峰值、训练速度与训练结果如何变化。
 
-| 项目内容 | CPU：机制验证 | GPU：真实对照 | 实验约定 |
-|:---|:---|:---|:---|
-| 实验目的 | 用小型张量检查四种策略的 loss、gradient 和 backward 语义 | 在同一训练 workload 下比较策略的显存收益与性能代价 | 关注激活显存是否下降，以及速度和质量是否可接受 |
-| 实验输入 | 使用固定张量和统一 loss，观察 saved tensors 或梯度结果 | 使用同一模型、随机输入、batch、seq_len、optimizer 和 seed | 策略之间只改变 activation 的保存方式 |
-| 实验对象 | 不加载真实模型；检查 baseline、checkpoint、offload、hybrid 的机制函数 | 默认使用 73 的模型和 workload，执行相同的训练 step | 不把 CPU 正确性结果当作真实显存收益 |
-| baseline | 激活值留在 GPU 的参照语义 | 记录 step time、吞吐、peak allocated、peak reserved、loss 和 OOM | 作为其他策略的显存和速度基线 |
-| checkpoint | 检查选定边界保存、其余部分重算的梯度语义 | 测量重算后的显存峰值和训练速度 | 用额外计算换取激活驻留空间 |
-| offload | 检查部分 backward 所需张量保存到 CPU 后仍能完成反向 | 测量 CPU-GPU 搬运、同步、显存和速度代价 | 用带宽、同步和 CPU 内存换取 GPU 空间 |
-| hybrid | 检查重算与部分搬运同时存在时的结果正确性 | 测量两类代价叠加后的显存和吞吐 | 只有在单一策略不足时再作为折中方案比较 |
-| 实验输出 | 输出机制检查、loss 和 gradient 结果 | 输出每种策略的状态、显存、速度、loss、OOM 和 JSON 报告 | 后续由 75 根据预算条件进行筛选 |
+| 实验要素 | 本节固定或比较的内容 | 最终输出 |
+|:---|:---|:---|
+| 比较对象 | baseline、checkpoint、offload、hybrid | 四种策略的可比较集合 |
+| 共同任务 | 固定模型、输入、训练目标和 workload | 排除任务差异造成的结果变化 |
+| 变化变量 | 只改变激活值的保存、重算或搬运方式 | 每种策略的显存、速度和训练结果 |
+| 实验输出 | 汇总峰值显存、step time、吞吐、loss 和运行状态 | 策略对照结果与后续预算判断依据 |
 
-表中的 CPU 路径回答“策略实现是否保持训练语义”，GPU 路径回答“在当前 workload 下是否值得使用”；表内策略描述是待验证的机制预期，不是实测结论。
+
 
 ![76 训练激活值的保存方式与代价](../public/02_PyTorch_Algorithms/76_strategy_lifecycle.svg)
-<div align="center"><strong>后续实验比较 GPU 显存、训练速度、可运行性和 loss。</strong></div>
-### Step 2：比较口径与实验协议
-固定比较条件，只改变显存策略；不同 workload 或 dtype 必须另存报告。
+### Step 2：统一实验条件与实验协议
+统一实验条件，只改变显存策略；不同 workload 或 dtype 另存报告。随机输入只保证策略间可比，不能替代真实数据集质量评估。
 
 | 项目 | 固定内容 | 目的 |
 |:---|:---|:---|
-| 模型与输入 | 同一模型、随机输入、标签和初始化 seed | 保证策略间训练任务一致 |
-| 训练配置 | optimizer、学习率、训练步数 | 排除训练过程差异 |
-| workload | batch、seq_len、warmup、iters、seed | 保证压力和统计口径一致 |
-| 候选策略 | baseline、checkpoint、offload、hybrid | 形成可比较集合 |
+| 模型与输入 | 同一模型、dtype、backend、随机输入、标签和初始化 seed | 保证策略间训练任务一致 |
+| 训练配置 | optimizer、学习率、训练步数、Gradient Accumulation、effective batch | 排除训练过程差异 |
+| workload | batch、seq_len、warmup、iters、seed、dtype | 保证压力和统计口径一致 |
+| 对照关系 | baseline 作为显存、速度、吞吐和 loss 的参照；候选来自 Step1 | 保证差值方向一致 |
 
-CPU 正确性检查和 GPU benchmark 是两条独立路径：前者检查 loss、gradient 和 step 语义，后者采集真实显存、吞吐和 OOM。它们共享策略定义与比较口径，但 GPU 运行不要求先执行 CPU 题目区。固定随机输入只保证策略间可比，不代表真实数据集上的训练质量。Gradient Accumulation 不放入本节核心四策略；如果要比较，必须固定 effective batch 并另存扩展报告。
+
 ### Step 3：指标与项目判定
-显存最低的方案不一定最值得采用；必须同时检查容量、速度和训练状态。
+显存最低的方案不一定最值得采用。先统一指标，再比较容量、速度和训练状态；需要预算取舍时，再使用 75 节的决策表。
 
 | 指标 | 含义 | 用于判断 |
 |:---|:---|:---|
@@ -76,11 +61,22 @@ CPU 正确性检查和 GPU benchmark 是两条独立路径：前者检查 loss�
 | peak reserved | allocator 保留的显存峰值 | 观察缓存和碎片影响 |
 | step time / samples/s | 重算、搬运和同步的时间代价 | 观察吞吐损失 |
 | val loss / OOM | 训练质量和可运行性 | 过滤不可接受方案 |
+| 判定规则 | 未 OOM、质量达标，并满足显存收益和吞吐保留率 | 输出 `accept / tune / reject` |
 
-报告中可用 `memory_saving = baseline_peak - candidate_peak` 和 `throughput_ratio = candidate_throughput / baseline_throughput` 表达取舍。`accept` 还要求候选未 OOM、显存和吞吐满足预算、质量不越过阈值，并达到有效显存收益；否则根据问题进入 `tune` 或 `reject`。最终预算裁决交给 75。
-### Step 4：动手实战（CPU-first）
+![76 显存策略指标与预算决策](../public/02_PyTorch_Algorithms/76_strategy_decision_flow.svg)
 
-**要求：** 请补全下方三个函数：检查预算与质量阈值、汇总 baseline / checkpoint / offload / hybrid 候选，并输出 `accept / tune / reject`。CPU 题目区验证决策逻辑；Step 5 独立使用相同口径采集 GPU 报告。
+
+### Step 4：实现 CPU 决策逻辑
+
+请补全下方 3 个函数，把实验报告字段转换为可复核的显存策略决策。完成后先运行 CPU 测试；这里不启动模型、不读取 GPU 状态，真实指标由 Step 5 单独采集。
+
+| TODO | 函数职责 | 实现重点 | 主要输出 |
+|:---|:---|:---|:---|
+| TODO 1 | `validate_strategy_budget` | 检查预算和质量阈值 | 校验结果 |
+| TODO 2 | `summarize_memory_strategy_candidates` | 汇总候选状态和收益 | 候选状态、可行候选、收益指标 |
+| TODO 3 | `decide_memory_strategy_project` | 根据阈值形成项目决策 | `decision`、`reason`、`next_action` |
+
+
 
 ```python
 from typing import Dict, List
@@ -94,25 +90,30 @@ from typing import Dict, List
 # CPU 题目区只验证预算与决策逻辑；真实策略、saved tensors、重算和搬运代价属于 GPU 实验。
 
 def validate_strategy_budget(budget: Dict[str, float], quality_floor: Dict[str, float]) -> Dict[str, object]:
-    """检查显存上限、吞吐下限和质量上限是否完整且合法。
-
-    返回 is_valid、missing_keys 和 invalid_keys；不负责判断某个策略是否最优。
-    """
-    # TODO 1：定义 required_budget_keys、required_quality_keys。
-    # 提示：至少检查 memory_cap_mb、min_samples_per_s、max_val_loss。
-    #       变量示例：budget_missing = ???、quality_missing = ???、invalid_keys = ???。
+    """校验显存、吞吐和质量阈值，返回可供后续筛选使用的诊断结果。"""
+    # ==========================================
+    # TODO 1：完成预算和质量阈值校验。
+    # 提示：先列出两组必需字段，再分别收集缺失字段和非法数值。
+    # required_budget_keys = [...]
+    # required_quality_keys = [...]
+    # missing_keys = [...]
+    # invalid_keys = [...]
+    # 返回 is_valid、missing_keys 和 invalid_keys；不负责判断某个策略是否最优。
+    # ==========================================
     raise NotImplementedError("请先完成 TODO 代码！")
 
-def summarize_memory_strategy_candidates(candidates: List[Dict[str, float]], budget: Dict[str, float], quality_floor: Dict[str, float]) -> Dict[str, object]:
-    """按预算和质量门槛筛选四类显存策略候选。
-
-    返回候选数量、可行数量、可行名称、最佳候选和显存节省；OOM 或缺失指标
-    不能被当作普通的零值。
-    """
-    # TODO 2：遍历 candidates，分别计算每个候选的可行性。
-    # 提示：变量示例：memory_ok = ???、throughput_ok = ???、quality_ok = ???、
-    #       is_feasible = ???；baseline_peak = ???；memory_saving = ???。
-    #       checkpoint 节省 activation 驻留，offload 还要承担 CPU-GPU 搬运代价。
+def summarize_memory_strategy_candidates(candidates: List[Dict[str, object]], budget: Dict[str, float], quality_floor: Dict[str, float]) -> Dict[str, object]:
+    """按统一预算筛选候选策略，并保留 OOM、无效指标和拒绝原因。"""
+    # ==========================================
+    # TODO 2：完成候选汇总，区分无效候选、不可行候选和可行候选。
+    # 候选字段：name、status、peak_memory_mb、samples_per_s、eval_loss / val_loss。
+    # 提示：先处理 OOM、重复和无效指标，再检查显存、吞吐和质量条件。
+    # evaluations = []
+    # feasible = []
+    # seen_names = set()
+    # memory_ok / speed_ok / quality_ok = ???
+    # evaluations 保存每个候选的可追溯状态，feasible 只保存通过全部门槛的候选。
+    # ==========================================
     raise NotImplementedError("请先完成 TODO 代码！")
 
 def decide_memory_strategy_project(summary: Dict[str, object]) -> Dict[str, object]:
@@ -120,10 +121,15 @@ def decide_memory_strategy_project(summary: Dict[str, object]) -> Dict[str, obje
 
     accept 仅表示当前 workload 和预算下值得继续保留，不表示普遍有效。
     """
-    # TODO 3：读取 feasible_count、best_candidate、memory_saving 和吞吐保留率。
-    # 提示：变量示例：has_feasible = ???、meaningful_saving = ???、
-    #       decision = ???、reason = ???、next_action = ???。
-    #       没有可行候选时 reject；可行但节省不显著时 tune。
+    # ==========================================
+    # TODO 3：完成项目决策。
+    # 提示：先检查 baseline，再检查可行候选，最后判断显存收益和吞吐保留率。
+    # baseline_available = ...
+    # feasible_count = ...
+    # best_candidate = ...
+    # meaningful_memory_gain / acceptable_throughput = ...
+    # 返回 decision、reason 和 next_action；不要硬编码具体策略名称。
+    # ==========================================
     raise NotImplementedError("请先完成 TODO 代码！")
 
 ```
@@ -133,7 +139,7 @@ def decide_memory_strategy_project(summary: Dict[str, object]) -> Dict[str, obje
 # 测试你的实现
 def test_memory_strategy_project():
     try:
-        budget = {'memory_cap_mb': 12000.0, 'min_samples_per_s': 6.0}
+        budget = {'memory_cap_mb': 12000.0, 'min_samples_per_s': 6.0, 'min_memory_saving_mb': 512.0, 'min_throughput_ratio': 0.70}
         quality_floor = {'max_val_loss': 1.15}
         check = validate_strategy_budget(budget, quality_floor)
         assert check['is_valid'] is True, '预算检查应通过'
@@ -141,6 +147,12 @@ def test_memory_strategy_project():
         missing = validate_strategy_budget({'memory_cap_mb': 12000.0}, quality_floor)
         assert missing['is_valid'] is False, '缺少吞吐门槛时应拒绝预算配置'
         assert 'min_samples_per_s' in missing['missing_keys'], '应指出缺少的预算字段'
+        invalid = validate_strategy_budget(
+            {'memory_cap_mb': -1.0, 'min_samples_per_s': 0.0, 'min_memory_saving_mb': 512.0, 'min_throughput_ratio': 1.2},
+            {'max_val_loss': 1.15},
+        )
+        assert invalid['is_valid'] is False, '非法预算值应被拒绝'
+        assert {'memory_cap_mb', 'min_throughput_ratio'} <= set(invalid['invalid_keys'])
 
         candidates = [
             {'name': 'baseline', 'peak_memory_mb': 18000.0, 'samples_per_s': 8.0, 'val_loss': 1.06},
@@ -151,9 +163,31 @@ def test_memory_strategy_project():
         summary = summarize_memory_strategy_candidates(candidates, budget, quality_floor)
         assert summary['feasible_count'] == 2, '应有两个方案满足预算与质量'
         assert summary['best_candidate'] == 'hybrid', 'hybrid 应成为最省显存的可行方案'
+        evaluation_by_name = {item['name']: item for item in summary['evaluations']}
+        assert evaluation_by_name['baseline']['status'] == 'rejected'
+        assert 'memory_over_budget' in evaluation_by_name['baseline']['reasons']
+        assert evaluation_by_name['checkpoint']['status'] == 'feasible'
+        assert evaluation_by_name['offload']['status'] == 'rejected'
+        assert 'throughput_below_floor' in evaluation_by_name['offload']['reasons']
+        assert evaluation_by_name['hybrid']['status'] == 'feasible'
 
         decision = decide_memory_strategy_project(summary)
         assert decision['decision'] == 'accept', '可行且最优的方案应被接受'
+        custom_summary = summarize_memory_strategy_candidates(
+            [
+                {'name': 'baseline', 'peak_memory_mb': 18000.0, 'samples_per_s': 8.0, 'val_loss': 1.06},
+                {'name': 'activation_checkpoint', 'peak_memory_mb': 11800.0, 'samples_per_s': 6.6, 'val_loss': 1.08},
+            ],
+            budget,
+            quality_floor,
+        )
+        assert decide_memory_strategy_project(custom_summary)['decision'] == 'accept', '自定义策略也应可被接受'
+        no_baseline = summarize_memory_strategy_candidates(
+            [{'name': 'checkpoint', 'peak_memory_mb': 10000.0, 'samples_per_s': 7.0, 'val_loss': 1.05}],
+            budget,
+            quality_floor,
+        )
+        assert decide_memory_strategy_project(no_baseline)['reason'] == 'baseline_missing_or_invalid'
 
         hard_summary = summarize_memory_strategy_candidates(
             [
@@ -176,7 +210,30 @@ def test_memory_strategy_project():
         )
         assert edge_summary['oom_count'] == 1, 'OOM 候选应单独计数'
         assert edge_summary['invalid_count'] == 1, '缺少指标的候选应标记为 invalid'
+        edge_evaluations = {item['name']: item for item in edge_summary['evaluations']}
+        assert edge_evaluations['oom_candidate']['status'] == 'oom'
+        assert edge_evaluations['incomplete']['status'] == 'invalid'
         assert decide_memory_strategy_project(edge_summary)['decision'] == 'reject', '没有可行策略时应 reject'
+
+        invalid_baseline = summarize_memory_strategy_candidates(
+            [
+                {'name': 'baseline', 'peak_memory_mb': float('nan'), 'samples_per_s': 8.0, 'eval_loss': 1.06},
+                {'name': 'checkpoint', 'peak_memory_mb': 11800.0, 'samples_per_s': 6.6, 'eval_loss': 1.08},
+            ],
+            budget,
+            quality_floor,
+        )
+        assert invalid_baseline['baseline_available'] is False, 'NaN baseline 不应进入收益计算'
+
+        small_gain = summarize_memory_strategy_candidates(
+            [
+                {'name': 'baseline', 'peak_memory_mb': 12000.0, 'samples_per_s': 8.0, 'eval_loss': 1.06},
+                {'name': 'checkpoint', 'peak_memory_mb': 11700.0, 'samples_per_s': 7.0, 'eval_loss': 1.07},
+            ],
+            budget,
+            quality_floor,
+        )
+        assert decide_memory_strategy_project(small_gain)['decision'] == 'tune', '显存节省不足时应 tune'
         print('所有测试通过！')
     except NotImplementedError:
         print('请先完成 TODO 代码！')
@@ -185,145 +242,23 @@ def test_memory_strategy_project():
         print(f'测试失败: {e}')
         raise NotImplementedError('请先完成 TODO 代码！') from e
     except Exception as e:
-        print(f'发生错误: {e}')
-        raise NotImplementedError('请先完成 TODO 代码！') from e
+        print(f'发生非预期错误: {e}')
+        raise
 
 
 test_memory_strategy_project()
 
 ```
 
-🛑 **STOP HERE** 🛑
+### Step 4 测试区补充：CPU 正确性检查
 
-## 参考代码与解析
+没有 GPU 时，不能验证真实 peak memory、CUDA kernel 或 CPU-GPU 搬运速度，但仍可以用一个小型网络检查策略语义：baseline、checkpoint、offload 和 hybrid 应该得到一致的 loss 与参数梯度。测试还会观察 baseline / checkpoint 的 saved tensors；`save_on_cpu` 会接管 offload 的保存钩子，因此 offload / hybrid 不伪造张量数量。这个测试验证的是 autograd 正确性，不是显存收益；真实显存结论由 Step 5 的 GPU benchmark 给出。
 
-### 代码
-
-
-```python
-from typing import Dict, List
-def validate_strategy_budget(budget: Dict[str, float], quality_floor: Dict[str, float]) -> Dict[str, object]:
-    required_budget_keys = ['memory_cap_mb', 'min_samples_per_s']
-    required_quality_keys = ['max_val_loss']
-    missing_keys = [key for key in required_budget_keys if key not in budget]
-    missing_keys += [key for key in required_quality_keys if key not in quality_floor]
-    return {
-        'is_valid': len(missing_keys) == 0,
-        'missing_keys': missing_keys,
-    }
-
-
-def summarize_memory_strategy_candidates(candidates: List[Dict[str, float]], budget: Dict[str, float], quality_floor: Dict[str, float]) -> Dict[str, object]:
-    feasible: List[Dict[str, float]] = []
-    quality_failed = 0
-    invalid_count = 0
-    oom_count = 0
-
-    for candidate in candidates:
-        if candidate.get('status', 'ok') == 'oom':
-            oom_count += 1
-            continue
-        memory = candidate.get('peak_memory_mb')
-        throughput = candidate.get('samples_per_s')
-        eval_loss = candidate.get('eval_loss', candidate.get('val_loss'))
-        if not all(isinstance(value, (int, float)) for value in (memory, throughput, eval_loss)):
-            invalid_count += 1
-            continue
-        memory_ok = memory <= budget['memory_cap_mb']
-        speed_ok = throughput >= budget['min_samples_per_s']
-        quality_ok = eval_loss <= quality_floor['max_val_loss']
-        if not quality_ok:
-            quality_failed += 1
-        if memory_ok and speed_ok and quality_ok:
-            feasible.append(candidate)
-
-    feasible.sort(key=lambda x: (x['peak_memory_mb'], -x['samples_per_s'], x.get('eval_loss', x.get('val_loss'))))
-    best_candidate = feasible[0]['name'] if feasible else None
-    baseline = next((item for item in candidates if item.get('name') == 'baseline' and item.get('status', 'ok') == 'ok' and all(isinstance(item.get(key), (int, float)) for key in ('peak_memory_mb', 'samples_per_s'))), None)
-    best = feasible[0] if feasible else None
-    return {
-        'candidate_count': len(candidates),
-        'measured_count': len(candidates) - oom_count - invalid_count,
-        'oom_count': oom_count,
-        'invalid_count': invalid_count,
-        'feasible_count': len(feasible),
-        'best_candidate': best_candidate,
-        'quality_failed_count': quality_failed,
-        'feasible_names': [item['name'] for item in feasible],
-        'baseline_peak_memory_mb': baseline['peak_memory_mb'] if baseline else None,
-        'best_peak_memory_mb': best['peak_memory_mb'] if best else None,
-        'memory_saving_mb': (baseline['peak_memory_mb'] - best['peak_memory_mb']) if baseline and best else 0.0,
-        'throughput_ratio': (best['samples_per_s'] / baseline['samples_per_s']) if baseline and best else None,
-    }
-
-
-def decide_memory_strategy_project(summary: Dict[str, object]) -> Dict[str, object]:
-    feasible_count = summary['feasible_count']
-    best_candidate = summary['best_candidate']
-    quality_failed_count = summary['quality_failed_count']
-
-    if feasible_count == 0:
-        return {
-            'decision': 'reject',
-            'reason': 'no_strategy_meets_budget_and_quality',
-            'next_action': 'rework_checkpoint_or_offload_scope',
-        }
-    meaningful_memory_gain = summary.get('memory_saving_mb', 0.0) >= 512.0
-    acceptable_throughput = summary.get('throughput_ratio') is None or summary.get('throughput_ratio') >= 0.70
-    if best_candidate in {'checkpoint', 'offload', 'hybrid'} and meaningful_memory_gain and acceptable_throughput:
-        return {
-            'decision': 'accept',
-            'reason': 'strategy_is_best_feasible_option',
-            'next_action': 'promote_to_training_run',
-        }
-    if quality_failed_count > 0:
-        return {
-            'decision': 'tune',
-            'reason': 'strategy_needs_quality_recovery',
-            'next_action': 'adjust_checkpoint_granularity_or_offload_scope',
-        }
-    if not meaningful_memory_gain:
-        return {
-            'decision': 'tune',
-            'reason': 'memory_saving_below_meaningful_threshold',
-            'next_action': 'test_pressure_or_offload_scope',
-        }
-    if not acceptable_throughput:
-        return {
-            'reason': 'throughput_loss_exceeds_budget',
-            'decision': 'tune',
-            'next_action': 'reduce_checkpoint_or_offload_scope',
-        }
-    return {
-        'decision': 'tune',
-        'reason': 'baseline_still_best_under_current_budget',
-        'next_action': 'revisit_strategy_mix',
-    }
-
-```
-
-### 解析
-
-**1. TODO 1: 检查预算与质量阈值**
-- **实现方式**：先把显存上限、吞吐下限和验证损失上限检查齐，再进入方案比较。
-- **关键点**：没有统一预算口径时，checkpoint / offload / hybrid 之间的比较都没有解释力。
-- **项目意义**：这一步把 `76` 固定成预算约束下的显存策略对比页，而不是泛技巧列表。
-
-**2. TODO 2: 汇总显存策略候选**
-- **实现方式**：按 peak memory、samples/s 和 val loss 统一过滤候选，再选出最省显存的可行方案。
-- **关键点**：显存收益只有在质量和吞吐都没有跌出边界时，才值得被保留。
-- **项目意义**：这一步把 `19 / 42 / 43 / 73` 的机制与测量知识收成真正可比较的工程候选。
-
-**3. TODO 3: 输出项目结论**
-- **实现方式**：把候选可行性和最优方案统一收成 `accept / tune / reject`。
-- **关键点**：项目结论必须回答“当前预算下哪种显存策略值得继续采用”，而不是只输出一个峰值显存最小值。
-- **项目意义**：这一步把 `76` 收成显存优化路线中的正式策略对比项目。
-
-## CPU 正确性检查：先验证策略不会改变训练结果
-
-没有 GPU 时，不能验证真实 peak memory、CUDA kernel 或 CPU-GPU 搬运速度，但仍可以用一个小型网络检查策略语义：baseline、checkpoint、offload 和 hybrid 应该得到一致的 loss 与参数梯度。测试还会观察 baseline / checkpoint 的 saved tensors；`save_on_cpu` 会接管 offload 的保存钩子，因此 offload / hybrid 不伪造张量数量。这个测试验证的是 autograd 正确性，不是显存收益；真实显存结论仍由下面的 GPU benchmark 给出。
+运行这个 cell 前不需要下载模型或准备 CUDA。重点检查三件事：四种策略的 loss 是否一致、参数梯度是否一致、offload 是否确实改变了保存位置。
 
 ```python
+# CPU 正确性 cell：使用小型网络验证四种策略的 autograd 语义，不启动 GPU benchmark。
+# 预期输出是 loss / gradient 一致性和 saved-tensor 观察结果；不要把这些数值填入 GPU 结果表。
 import contextlib
 import torch
 from torch import nn
@@ -398,27 +333,278 @@ print('CPU correctness test passed; this does not measure real GPU memory saving
 
 ```
 
-## Step 5（可选）：真实 GPU 显存策略 benchmark
+🛑 **STOP HERE** 🛑
 
-本 Step 独立复用 73 的训练口径，在同一模型、固定输入和 FP32 + AdamW 配置下比较 baseline、activation checkpoint、CPU offload 和 hybrid。运行前会自动读取并校验 `benchmarks/results/73_real_gpu_training.json`；如果模型、batch、seq_len、dtype 或 optimizer 不一致，会要求先用相同 workload 重跑 73。提供 `smoke` 与 `pressure` 两档 workload：smoke 用于快速校验，pressure 用于提高 activation 压力。输出包括每个候选的运行状态、step time、吞吐、peak allocated、peak reserved、eval loss 以及预算决策，结果保存到 `benchmarks/results/76_real_gpu_memory.json`。
+## 参考代码与解析
 
-这里的 offload 使用 PyTorch 的 `torch.autograd.graph.save_on_cpu` 保存 backward 所需张量，重点是教学 benchmark，不等同于生产训练框架中的完整 offload 调度。`eval_loss` 只是固定随机输入上的质量代理指标，不等同于真实数据集验证结果。`REPEATS=1` 用于快速 smoke；改为 3 后会把每种策略的独立运行结果、均值和 `stability` 范围一起写入报告，用于检查收益是否稳定。出现 `partial_oom` 时，只能把成功运行的结果视为参考，不能当作完整重复实验。
+### 代码
 
-![76 GPU 策略对比流程](../public/02_PyTorch_Algorithms/76_gpu_strategy_benchmark.svg)
-<div align="center"><strong>先校验 73 的条件，再采集策略指标并保存 JSON。</strong></div>
-
-本节主线保持全参数训练口径：`Qwen2.5-0.5B + FP32 + AdamW`。如果要在 12GB 显存上测试更大模型或更长序列，应另设 LoRA / QLoRA 扩展实验：LoRA 主要减少可训练参数、梯度和 optimizer state，QLoRA 进一步压缩基座权重；它们不能与本节主线结果直接横向比较，但可以用于观察更大模型下 activation checkpoint / offload 的适用边界。
-
-| 策略 | 主要换取什么 | 适用判断 |
-|---|---|---|
-| baseline | 不引入额外重算或搬运 | 显存有余量、优先吞吐时作为参照 |
-| checkpoint | 用额外 forward 计算换 activation 驻留 | activation 主导峰值且能接受吞吐下降时优先尝试 |
-| offload | 用 CPU-GPU 带宽和同步换 GPU 驻留空间 | GPU 显存成为硬约束、速度代价可接受时使用 |
-| hybrid | 同时承担部分重算和搬运代价 | 单一策略不够或需要折中时再测试 |
-
-本节的 CPU 结果证据等级是 `autograd_correctness`，GPU 结果是 `fixed_workload_strategy_benchmark`；两者都不能单独推出真实任务收敛或生产训练性能。
 
 ```python
+import math
+from typing import Dict, List
+def validate_strategy_budget(budget: Dict[str, float], quality_floor: Dict[str, float]) -> Dict[str, object]:
+    # ==========================================
+    # TODO 1 对应题目区：收集预算与质量校验字段。
+    required_budget_keys = ['memory_cap_mb', 'min_samples_per_s', 'min_memory_saving_mb', 'min_throughput_ratio']  # 预算必需字段
+    required_quality_keys = ['max_val_loss']
+    missing_keys = [key for key in required_budget_keys if key not in budget]
+    missing_keys += [key for key in required_quality_keys if key not in quality_floor]
+    numeric_values = {key: budget.get(key) for key in required_budget_keys}
+    numeric_values.update({key: quality_floor.get(key) for key in required_quality_keys})
+    invalid_keys = [
+        key for key, value in numeric_values.items()
+        if key not in missing_keys and (not isinstance(value, (int, float)) or not math.isfinite(value))
+    ]
+    memory_cap = budget.get('memory_cap_mb')
+    min_throughput = budget.get('min_samples_per_s')
+    min_saving = budget.get('min_memory_saving_mb')
+    throughput_ratio = budget.get('min_throughput_ratio')
+    max_loss = quality_floor.get('max_val_loss')
+    if isinstance(memory_cap, (int, float)) and memory_cap <= 0:
+        invalid_keys.append('memory_cap_mb')
+    if isinstance(min_throughput, (int, float)) and min_throughput < 0:
+        invalid_keys.append('min_samples_per_s')
+    if isinstance(min_saving, (int, float)) and min_saving < 0:
+        invalid_keys.append('min_memory_saving_mb')
+    if isinstance(throughput_ratio, (int, float)) and not 0 <= throughput_ratio <= 1:
+        invalid_keys.append('min_throughput_ratio')
+    if isinstance(max_loss, (int, float)) and max_loss < 0:
+        invalid_keys.append('max_val_loss')
+    invalid_keys = list(dict.fromkeys(invalid_keys))
+    return {
+        'is_valid': len(missing_keys) == 0 and len(invalid_keys) == 0,
+        'missing_keys': missing_keys,
+        'invalid_keys': invalid_keys,
+    }
+
+
+def summarize_memory_strategy_candidates(candidates: List[Dict[str, object]], budget: Dict[str, float], quality_floor: Dict[str, float]) -> Dict[str, object]:
+    # ==========================================
+    # TODO 2 对应题目区：汇总候选状态，并筛选通过全部门槛的方案。
+    # 提示：evaluations 记录每个候选的状态；feasible 只保留可行候选；
+    # memory_ok / speed_ok / quality_ok 分别对应显存、吞吐和质量条件。
+    # ==========================================
+    feasible: List[Dict[str, float]] = []  # 通过全部门槛的候选
+    quality_failed = 0
+    invalid_count = 0
+    oom_count = 0
+    evaluations = []
+    seen_names = set()
+
+    for candidate in candidates:
+        # 依次处理名称、OOM、指标完整性，再判断预算、吞吐和质量条件。
+        name = candidate.get('name')
+        if not isinstance(name, str) or not name or name in seen_names:
+            invalid_count += 1
+            evaluations.append({'name': name, 'status': 'invalid', 'reasons': ['missing_or_duplicate_name']})
+            continue
+        seen_names.add(name)
+        if candidate.get('status', 'ok') == 'oom':
+            oom_count += 1
+            evaluations.append({'name': name, 'status': 'oom', 'reasons': ['oom']})
+            continue
+        memory = candidate.get('peak_memory_mb')
+        throughput = candidate.get('samples_per_s')
+        eval_loss = candidate.get('eval_loss', candidate.get('val_loss'))
+        if not all(isinstance(value, (int, float)) and math.isfinite(value) for value in (memory, throughput, eval_loss)):
+            invalid_count += 1
+            evaluations.append({'name': name, 'status': 'invalid', 'reasons': ['missing_or_non_numeric_metric']})
+            continue
+        memory_ok = memory <= budget['memory_cap_mb']
+        speed_ok = throughput >= budget['min_samples_per_s']
+        quality_ok = eval_loss <= quality_floor['max_val_loss']
+        if not quality_ok:
+            quality_failed += 1
+        reasons = []
+        if not memory_ok:
+            reasons.append('memory_over_budget')
+        if not speed_ok:
+            reasons.append('throughput_below_floor')
+        if not quality_ok:
+            reasons.append('quality_over_floor')
+        evaluations.append({
+            'name': name,
+            'status': 'feasible' if not reasons else 'rejected',
+            'reasons': reasons,
+        })
+        if memory_ok and speed_ok and quality_ok:
+            feasible.append(candidate)
+
+    # 优先选择峰值显存更低的方案，再用吞吐和质量处理并列情况。
+    feasible.sort(key=lambda x: (x['peak_memory_mb'], -x['samples_per_s'], x.get('eval_loss', x.get('val_loss'))))
+    best_candidate = feasible[0]['name'] if feasible else None
+    baseline = next((item for item in candidates if item.get('name') == 'baseline' and item.get('status', 'ok') == 'ok' and all(isinstance(item.get(key), (int, float)) and math.isfinite(item.get(key)) for key in ('peak_memory_mb', 'samples_per_s'))), None)
+    best = feasible[0] if feasible else None
+    return {
+        'candidate_count': len(candidates),
+        'measured_count': len(candidates) - oom_count - invalid_count,
+        'oom_count': oom_count,
+        'invalid_count': invalid_count,
+        'feasible_count': len(feasible),
+        'best_candidate': best_candidate,
+        'quality_failed_count': quality_failed,
+        'feasible_names': [item['name'] for item in feasible],
+        'baseline_peak_memory_mb': baseline['peak_memory_mb'] if baseline else None,
+        'baseline_available': baseline is not None,
+        'best_peak_memory_mb': best['peak_memory_mb'] if best else None,
+        'memory_saving_mb': (baseline['peak_memory_mb'] - best['peak_memory_mb']) if baseline and best else 0.0,
+        'throughput_ratio': (best['samples_per_s'] / baseline['samples_per_s']) if baseline and best else None,
+        'min_memory_saving_mb': budget['min_memory_saving_mb'],
+        'min_throughput_ratio': budget['min_throughput_ratio'],
+        'evaluations': evaluations,
+    }
+
+
+def decide_memory_strategy_project(summary: Dict[str, object]) -> Dict[str, object]:
+    """根据基线、可行候选和预算阈值输出 accept、tune 或 reject。"""
+    # 决策顺序固定为：基线完整性、可行候选、显存收益和吞吐保留率。
+    # ==========================================
+    # TODO 3 对应题目区：按基线、可行候选和收益阈值输出项目结论。
+    # 提示：先读取 baseline_available / feasible_count，再判断两个收益布尔量。
+    # ==========================================
+    feasible_count = summary['feasible_count']  # 可行候选数量
+    best_candidate = summary['best_candidate']
+    quality_failed_count = summary['quality_failed_count']
+
+    if not summary.get('baseline_available', False):
+        return {
+            'decision': 'reject',
+            'reason': 'baseline_missing_or_invalid',
+            'next_action': 'rerun_baseline_before_comparing_candidates',
+        }
+    if feasible_count == 0:
+        return {
+            'decision': 'reject',
+            'reason': 'no_strategy_meets_budget_and_quality',
+            'next_action': 'rework_checkpoint_or_offload_scope',
+        }
+    # 显存收益和吞吐保留率都达标，才允许进入 accept 分支。
+    meaningful_memory_gain = summary.get('memory_saving_mb', 0.0) >= summary['min_memory_saving_mb']
+    acceptable_throughput = summary.get('throughput_ratio') is not None and summary['throughput_ratio'] >= summary['min_throughput_ratio']
+    if best_candidate != 'baseline' and meaningful_memory_gain and acceptable_throughput:
+        # 只有显存收益和吞吐保留率同时达标，才接受策略变更。
+        return {
+            'decision': 'accept',
+            'reason': 'strategy_is_best_feasible_option',
+            'next_action': 'promote_to_training_run',
+        }
+    if quality_failed_count > 0:
+        return {
+            'decision': 'tune',
+            'reason': 'strategy_needs_quality_recovery',
+            'next_action': 'adjust_checkpoint_granularity_or_offload_scope',
+        }
+    if not meaningful_memory_gain:
+        return {
+            'decision': 'tune',
+            'reason': 'memory_saving_below_meaningful_threshold',
+            'next_action': 'test_pressure_or_offload_scope',
+        }
+    if not acceptable_throughput:
+        return {
+            'reason': 'throughput_loss_exceeds_budget',
+            'decision': 'tune',
+            'next_action': 'reduce_checkpoint_or_offload_scope',
+        }
+    return {
+        'decision': 'tune',
+        'reason': 'baseline_still_best_under_current_budget',
+        'next_action': 'revisit_strategy_mix',
+    }
+
+```
+
+### 解析
+
+**1. TODO 1: 检查预算与质量阈值**
+- **实现方式**：先把显存上限、吞吐下限和验证损失上限检查齐，再进入方案比较。
+- **关键点**：没有统一预算口径时，checkpoint / offload / hybrid 之间的比较都没有解释力。
+- **项目意义**：这一步把 `76` 固定成预算约束下的显存策略对比页，而不是泛技巧列表。
+
+**2. TODO 2: 汇总显存策略候选**
+- **实现方式**：按 peak memory、samples/s 和 val loss 统一过滤候选，再选出最省显存的可行方案。
+- **关键点**：显存收益只有在质量和吞吐都没有跌出边界时，才值得被保留。
+- **项目意义**：这一步把 `19 / 42 / 43 / 73` 的机制与测量知识收成真正可比较的工程候选。
+
+**3. TODO 3: 输出项目结论**
+- **实现方式**：把候选可行性和最优方案统一收成 `accept / tune / reject`。
+- **关键点**：项目结论必须回答“当前预算下哪种显存策略值得继续采用”，而不是只输出一个峰值显存最小值。
+- **项目意义**：这一步把 `76` 收成显存优化路线中的正式策略对比项目。
+
+### Step 5（可选）：真实 GPU 显存策略 benchmark
+
+#### 5.1 实验目标与条件
+
+本 Step 复用 73 的训练口径，在真实 GPU 上比较四种激活显存策略。表中先固定实验条件，再说明只改变什么以及要保存哪些结果；随后按 5.2–5.5 的顺序完成检查、配置、运行和记录。环境依赖按维护文档准备；自动安装只补普通 Python 依赖，不替代 CUDA 驱动或 PyTorch wheel。
+
+| 实验要素 | 固定或设置的内容 | 形成的证据 |
+|:---|:---|:---|
+| 实验对象 | baseline、checkpoint、offload、hybrid | 四种策略的可比较集合 |
+| 共同条件 | `Qwen/Qwen2.5-0.5B-Instruct`、FP32、AdamW、batch=1、seq_len=768、seed=42 | `73_real_gpu_training.json` 与当前配置 |
+| 变化变量 | 只改变激活值的保存、重算或搬运策略 | 每个策略的重复运行结果 |
+| 输出指标 | step time（ms）、吞吐（samples/s）、peak allocated / reserved（MiB）、eval loss、OOM | `76_real_gpu_memory.json` |
+
+**策略与代价口径**
+
+| 策略 | 用什么换显存 | 主要观察点 |
+|:---|:---|:---|
+| baseline | 不引入额外重算或搬运 | 显存和速度参照 |
+| checkpoint | 用额外 forward 计算换激活值驻留 | 重算时间与峰值显存 |
+| offload | 用 CPU-GPU 搬运和同步换 GPU 驻留空间 | 搬运时间与峰值显存 |
+| hybrid | 同时承担部分重算和搬运代价 | 折中后的速度与显存 |
+
+<div align="center"><strong>先校验 73 的条件，再采集策略指标并保存 JSON。</strong></div>
+
+![76 GPU 策略对比流程](../public/02_PyTorch_Algorithms/76_gpu_strategy_benchmark.svg)
+
+
+#### 5.2 环境预检
+
+先检查项目路径、Python、PyTorch 和 CUDA。这个单元只报告环境状态，不加载模型、不开始测量；预检未通过时，先根据输出修复环境。
+
+```python
+"""GPU benchmark 的独立环境预检：只确认路径和运行时，不安装依赖、不加载模型。"""
+# 只检查项目路径、Python、PyTorch 和 CUDA；不安装依赖、不加载模型。
+from pathlib import Path
+import os
+import subprocess
+import sys
+
+GPU_PROJECT_ROOT = Path(os.environ.get('LLM_ALGO_PROJECT_ROOT', Path.cwd())).expanduser().resolve()
+if not (GPU_PROJECT_ROOT / 'tools/project_runtime.py').is_file():
+    colab_root = Path('/content/llm-algo-leetcode')
+    if (colab_root / 'tools/project_runtime.py').is_file():
+        GPU_PROJECT_ROOT = colab_root
+    elif Path('/content').is_dir() and not colab_root.exists():
+        subprocess.run(['git', 'clone', 'https://github.com/datawhalechina/llm-algo-leetcode.git', str(colab_root)], check=True)
+        GPU_PROJECT_ROOT = colab_root
+if not (GPU_PROJECT_ROOT / 'tools/project_runtime.py').is_file():
+    raise RuntimeError('找不到项目根目录：请设置 LLM_ALGO_PROJECT_ROOT，或先把仓库放到 /content/llm-algo-leetcode。')
+os.chdir(GPU_PROJECT_ROOT)
+if str(GPU_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(GPU_PROJECT_ROOT))
+print(f'project_root: {GPU_PROJECT_ROOT}')
+try:
+    import torch
+except ImportError:
+    print('未检测到 PyTorch；请按维护文档安装匹配的 torch CUDA wheel 后再运行 GPU benchmark。')
+else:
+    print(f'torch: {torch.__version__}')
+    print(f'cuda_build: {torch.version.cuda}; cuda_available: {torch.cuda.is_available()}')
+    if torch.cuda.is_available():
+        props = torch.cuda.get_device_properties(0)
+        print(f'gpu: {props.name}; memory_gib: {props.total_memory / 2**30:.1f}')
+
+```
+
+#### 5.3 配置变量
+
+先用 `smoke` 检查流程，再用 `pressure` 进行重复测量。通常只修改运行开关、workload、策略集合和预算阈值；模型、输入和指标计算逻辑保持不变。
+
+```python
+# 通常只修改本 cell 的运行开关、WORKLOAD、STRATEGIES 和预算阈值。
+# 先用 smoke 检查流程，再用 pressure 进行重复测量；不要修改下一 cell 的测量和 JSON 写入逻辑。
 from pathlib import Path
 
 AUTO_INSTALL_REAL_DEPS = True  # 真实 GPU 开启时，只安装当前内核缺失的普通依赖。
@@ -442,7 +628,7 @@ STRATEGIES = ['baseline', 'checkpoint', 'offload', 'hybrid']  # 四种策略在�
 
 # 完成 smoke 后，可改为：['baseline', 'checkpoint', 'offload', 'hybrid']
 # BF16 / 长序列扩展允许先比较子集，但报告必须保留实际 strategies。
-REPEATS = 1  # 每种策略的独立运行次数；正式稳定性检查建议改为 3。
+REPEATS = 1 if WORKLOAD == 'smoke' else 3  # smoke 快速检查；pressure 默认重复 3 次，形成可比较的稳定性证据。
 MEMORY_CAP_MB = 11200.0  # 硬显存预算；需为系统和桌面进程留余量。
 MIN_SAMPLES_PER_S = 1.0  # 最低吞吐；低于此值的策略判为不可行。
 # None 表示按当前固定 workload 的 baseline eval_loss 自动生成质量上限
@@ -453,8 +639,13 @@ OUTPUT_RELATIVE_PATH = Path('benchmarks/results/76_real_gpu_memory.json')
 
 ```
 
+#### 5.4 运行与保存
+
+运行 cell 会按当前配置加载模型、测量四种策略并写入 JSON；每个策略使用相同 workload，正式结论应查看重复运行、稳定性和 OOM 状态，而不是只看一次结果。若口径不一致或预检失败，程序会在加载模型前停止，相关记录统一放在 5.5 的证据状态中。
 
 ```python
+# 按配置完成环境预检、模型准备、策略测量、重复运行和 JSON 写入。
+# RUN_REAL_GPU=False 时只输出跳过信息；运行后查看 environment_preflight、config、candidates[*].runs、stability 和 decision。
 import json
 import gc
 import os
@@ -661,7 +852,7 @@ if RUN_REAL_GPU:
         return {**successful[0], **aggregated, 'status': status, 'runs': runs, 'successful_runs': len(successful), 'oom_runs': len(runs) - len(successful), 'stability': stability}
 
     candidates = [run_strategy_repeated(name) for name in STRATEGIES]
-    budget = {'memory_cap_mb': MEMORY_CAP_MB, 'min_samples_per_s': MIN_SAMPLES_PER_S}
+    budget = {'memory_cap_mb': MEMORY_CAP_MB, 'min_samples_per_s': MIN_SAMPLES_PER_S, 'min_memory_saving_mb': 512.0, 'min_throughput_ratio': 0.70}
     baseline_candidate = next((item for item in candidates if item.get('name') == 'baseline' and item.get('status', 'ok') == 'ok'), None)
     if MAX_VAL_LOSS is None and baseline_candidate is not None:
         max_eval_loss = baseline_candidate['eval_loss'] * 1.02
@@ -709,49 +900,116 @@ else:
 
 ```
 
-## 实测记录：本地 RTX 5070 Ti GPU
+#### 5.5 读取与复测
 
-下面记录 76 的真实 GPU benchmark，作为本节的可读实验报告；原始 JSON 由 Step 5 保存到 `benchmarks/results/76_real_gpu_memory.json`。
+先运行上一个 benchmark cell，再运行下面的读取 cell。它只读取结果文件，不会启动模型、不重复测量，也不会覆盖 JSON。读取 JSON 后，先核对实际运行环境和统一口径，再查看已保存结果和学习者复测位置。
 
-### 环境与统一配置
 
-| 项目 | 配置 |
+```python
+# 结果读取 cell：把 JSON 中的配置、重复运行和聚合指标打印成可抄录的表格。
+# 如果文件不存在，先回到配置 cell 和 benchmark cell；不要手动创建空 JSON。
+import json
+from pathlib import Path
+
+result_path = PROJECT_ROOT / OUTPUT_RELATIVE_PATH
+if not result_path.exists():
+    raise FileNotFoundError(f'找不到结果文件：{result_path}。请先运行 GPU benchmark cell。')
+report = json.loads(result_path.read_text(encoding='utf-8'))
+print('结果文件:', result_path)
+print('实验配置:', report.get('config', {}))
+print('决策:', report.get('decision', {}))
+
+rows = []
+for candidate in report.get('candidates', []):
+    rows.append({
+        '策略': candidate.get('name'),
+        '状态': candidate.get('status'),
+        'runs': candidate.get('runs', []),
+        '平均 step time(ms)': candidate.get('step_time_ms'),
+        'step time 范围(ms)': candidate.get('stability', {}).get('step_time_range_ms'),
+        '平均吞吐(samples/s)': candidate.get('samples_per_s'),
+        '吞吐范围(samples/s)': candidate.get('stability', {}).get('throughput_range_samples_per_s'),
+        '峰值显存(MiB)': candidate.get('peak_memory_mb'),
+        '成功次数': candidate.get('successful_runs', 0),
+        'OOM 次数': candidate.get('oom_runs', 0),
+    })
+for row in rows:
+    print(row)
+
+```
+
+**实测环境与统一口径**
+
+| 项目 | 实际配置 |
 |:---|:---|
-| Linux 内核 | `6.8.0-138-generic` |
-| GPU / 显存 | NVIDIA GeForce RTX 5070 Ti Laptop GPU / 12227 MiB |
-| NVIDIA 驱动 | `570.211.01` |
+| 系统 / GPU | Linux `6.8.0-138-generic`、RTX 5070 Ti Laptop GPU / 12227 MiB |
+| 驱动 | `570.211.01` |
 | PyTorch / CUDA | `2.11.0+cu128` / `12.8` |
 | 模型 | `Qwen/Qwen2.5-0.5B-Instruct` |
-| 训练配置 | FP32、AdamW、batch=1、warmup=2、iters=5、seed=42 |
-| Pressure workload | seq_len=768 |
-| 预算 | 显存上限 11200 MiB，吞吐下限 1 sample/s |
+| workload | `pressure`：batch=1、seq_len=768 |
+| 训练设置 | FP32、AdamW、learning rate=1e-5、warmup=2、iters=5、seed=42 |
+| 预算 | 显存上限 11200 MiB、吞吐下限 1 sample/s |
+| 输出文件 | `benchmarks/results/76_real_gpu_memory.json` |
 
-### Pressure 实测结果
+**主线结果与复测记录**
 
-| 策略 | step time | throughput | peak allocated | peak reserved | eval loss | 状态 |
-|:---|---:|---:|---:|---:|---:|:---|
-| baseline | 497.839 ms | 2.009 | 9782.74 MiB | 10750.00 MiB | 12.356503 | ok |
-| checkpoint | 567.740 ms | 1.761 | 9450.76 MiB | 10896.00 MiB | 12.356503 | ok |
-| offload | 1877.559 ms | 0.533 | 9448.33 MiB | 10404.00 MiB | 12.356503 | ok |
-| hybrid | 783.478 ms | 1.276 | 9454.64 MiB | 10444.00 MiB | 12.356503 | ok |
+本地历史结果使用 FP32 / `seq_len=768`；下面展示 JSON 中的汇总值，并保留 Run 1–3 和学习者复测位置。原始文件为 `benchmarks/results/76_real_gpu_memory.json`。
 
-### 结果解读
+Run 1–3 用于填写逐次结果，均值和范围来自 JSON 中的 `runs` 字段；当前均值标注为历史值，少于 3 次完整运行时应标记为 `gpu_smoke`。
 
-checkpoint 相比 baseline 节省 331.98 MiB 显存，吞吐下降约 12.3%；offload 只多节省约 2.4 MiB，却使吞吐下降约 73.4%；hybrid 的显存收益与 checkpoint 接近，但吞吐下降约 36.5%。四种策略的 eval loss 完全一致，说明本次策略切换没有造成质量退化。
+| 策略 | Run 1 | Run 2 | Run 3 | 平均 step time（ms） | step time 范围（ms） | 平均吞吐（samples/s） | 吞吐范围（samples/s） | 峰值显存（MiB） | eval loss | 状态 |
+|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|:---|
+| baseline | 待填写 | 待填写 | 待填写 | 497.839（历史） | 待填写 | 2.009（历史） | 待填写 | 9782.74 | 12.356503 | 待复核 |
+| checkpoint | 待填写 | 待填写 | 待填写 | 567.740（历史） | 待填写 | 1.761（历史） | 待填写 | 9450.76 | 12.356503 | 待复核 |
+| offload | 待填写 | 待填写 | 待填写 | 1877.559（历史） | 待填写 | 0.533（历史） | 待填写 | 9448.33 | 12.356503 | 待复核 |
+| hybrid | 待填写 | 待填写 | 待填写 | 783.478（历史） | 待填写 | 1.276（历史） | 待填写 | 9454.64 | 12.356503 | 待复核 |
 
-当前没有方案达到 512 MiB 的有效显存收益阈值，因此项目决策为 `tune`，不是 `accept`。checkpoint 是当前最值得保留的候选；offload 和 hybrid 的速度代价不值得当前 workload 采用。这里的结论只适用于本次模型、序列长度和全参数训练口径。
+下表用于填写自己的硬件或其他 workload；策略比较必须复用同一模型、输入、训练条件和重复次数。
 
-### BF16 / seq_len=1024 扩展实验
+| 策略 | GPU / 显存 | 模型 | dtype | batch | seq_len | repeats | step time (ms) | throughput (samples/s) | peak allocated (MiB) | peak reserved (MiB) | eval loss | 状态 | evidence level |
+|:---|:---|:---|:---|---:|---:|---:|---:|---:|---:|---:|---:|:---|:---|
+| baseline | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 |
+| checkpoint | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 |
+| offload | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 |
+| hybrid | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 | 待填写 |
 
-该实验不替代 FP32/seq_len=768 主线，而是验证低精度是否能先解决长序列容量边界。配置为 Qwen2.5-0.5B-Instruct、batch=1、seq_len=1024、BF16 autocast、AdamW；只比较 baseline 与 checkpoint。
+
+#### 5.6 解释与决策
+
+**证据状态与失败记录**
+
+口径检查会在加载模型前执行；以下记录说明一次 workload 不一致，不属于 benchmark 结果。
+
+| 检查项 | 73 已保存结果 | 76 当前配置 | 处理动作 |
+|:---|:---|:---|:---|
+| workload | `pressure_1024` | `pressure` | 报错并停止，先让两节使用同一 workload |
+| 检查目的 | 序列长度和压力条件可能不同 | 需要复用 73 baseline | 重跑 73，或同步修改 76 后再运行 |
+| 结论状态 | 不能直接作为对照 | 尚未开始测量 | 不生成本次策略比较结论 |
+
+**主线策略判断**
+
+本地结果显示：checkpoint 比 baseline 少占 331.98 MiB 显存，但吞吐下降约 12.3%；offload 和 hybrid 的速度代价更高，四种策略的 eval loss 一致。当前没有方案达到 512 MiB 显存收益阈值，因此结论为 `tune`；这些结果只适用于本模型、序列长度和全参数训练口径。
+
+**扩展实测：BF16 / seq_len=1024**
+
+该组实验改变了 dtype 和序列长度，因此单独作为扩展证据，不与主线结果合并。配置为 `Qwen/Qwen2.5-0.5B-Instruct`、batch=1、BF16 autocast、AdamW，仅比较 baseline 与 checkpoint。
+这组实测表明 BF16 使 `seq_len=1024` 在当前 12GB GPU 上成功运行；checkpoint 额外节省约 27.16 MiB，吞吐保留约 86.7%。它只说明当前 workload 下的结果，不代表所有长序列任务。76 提供策略实测证据，75 再据此进行预算决策。
 
 | 策略 | step time | throughput | peak allocated | peak reserved | eval loss | 状态 |
 |:---|---:|---:|---:|---:|---:|:---|
 | baseline | 297.060 ms | 3.366 samples/s | 10037.52 MiB | 10542.00 MiB | 12.202896 | ok |
 | checkpoint | 342.564 ms | 2.919 samples/s | 10010.36 MiB | 10876.00 MiB | 12.202565 | ok |
 
-BF16 使 seq_len=1024 在当前 12GB GPU 上成功运行；checkpoint 只额外节省约 27.16 MiB，吞吐保留约 86.7%，因此当前 BF16 workload 下不构成明显显存收益。这个结果说明：本次长序列压力更可能由 logits、参数或其他固定状态主导，不能据此断言 checkpoint 在所有长序列任务中都无效。由于当前显存容量有限，本实验没有形成更高 activation 主导 workload 的证据；更高压力需要 LoRA / QLoRA、分块 loss 或独立 activation-only benchmark 扩展。
 
-### 与 75 节的衔接
+---
+## 相关阅读
 
-76 负责提供候选策略的实测证据，75 负责把这些结果放入显存上限、吞吐下限和质量下限，输出最终的 `accept / tune / reject` 预算决策。
+以下资料按“训练显存机制 → 官方实现 → 项目决策”排列，用于把 checkpoint、offload 和重算代价连接到实际训练系统。
+
+- [Training Deep Nets with Sublinear Memory Cost 论文](https://arxiv.org/abs/1604.06174)
+- [ZeRO-Offload 论文：民主化大模型训练](https://arxiv.org/abs/2101.06840)
+- [PyTorch `torch.utils.checkpoint` 文档](https://pytorch.org/docs/stable/checkpoint.html)
+- [43. Unified Memory Management | 统一内存管理](./43_Unified_Memory_Management.md)
+- [73 训练性能分析](./73_Training_Performance_Analysis.md)
+- [75 显存预算压缩项目](./75_Memory_Budget_Compression_Project.md)
+- [74 Profiling 驱动的端到端优化](./74_Profiling_Driven_End_to_End_Optimization.md)

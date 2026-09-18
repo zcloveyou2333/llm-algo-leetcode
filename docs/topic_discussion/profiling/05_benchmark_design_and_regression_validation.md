@@ -2,9 +2,9 @@
 
 ## 页面目标
 
-本节负责解释：就算定位出了热点，也不能直接宣布优化成立，必须回到 benchmark 和回归验证。
+本节对应 **Task5：benchmark 设计与回归验证**。你将把 profiling 得到的假设转成 baseline / candidate 对照，并固定影响结果的条件。
 
-本节的输出是可比较的 before / after 结果：固定 workload、环境、warmup 和统计口径，并同时记录收益、代价与波动。没有这一步，profiling 只能提供线索，不能提供项目结论。
+本节的输出是可比较的 before / after 结果：固定 workload、环境、warmup 和统计口径，并同时记录收益、代价与波动。结果随后交给 Task6 判断是否保留、继续取证或回退。
 
 ## 问题起点
 

@@ -1,21 +1,58 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="t d">
-<title id="t">梯度累积训练路径总览</title><desc id="d">有效 batch 被拆成多个 micro-batch，单次计算降低 activation 峰值，梯度在参数上累积，最后执行一次 optimizer step。</desc>
-<defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#475569"/></marker><style>
-.h{font:700 28px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#0f172a}.s{font:500 15px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#475569}.l{font:700 18px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#111827}.b{font:500 14px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#334155}.box{stroke-width:3;rx:16}.f{stroke:#475569;stroke-width:4;fill:none;marker-end:url(#a)}
-</style></defs>
-<rect width="1200" height="560" fill="#f8fafc"/>
-<text x="50" y="52" class="h">梯度累积：从逻辑 batch 到显存与更新节奏</text>
-<text x="50" y="82" class="s">上层看一次更新如何推进，下层看 micro-batch、长期状态和有效 batch 分别改变什么。</text>
-<rect x="45" y="170" width="210" height="120" class="box" fill="#eff6ff" stroke="#3b82f6"/><text x="150" y="215" text-anchor="middle" class="l">逻辑 batch</text><text x="150" y="250" text-anchor="middle" class="b">一次更新看到的样本总量</text>
-<path d="M255 230H320" class="f"/>
-<rect x="320" y="170" width="210" height="120" class="box" fill="#fef3c7" stroke="#d97706"/><text x="425" y="215" text-anchor="middle" class="l">拆成 micro-batch</text><text x="425" y="250" text-anchor="middle" class="b">每次只处理一部分样本</text>
-<path d="M530 230H595" class="f"/>
-<rect x="595" y="170" width="210" height="120" class="box" fill="#ecfccb" stroke="#65a30d"/><text x="700" y="215" text-anchor="middle" class="l">多次 backward</text><text x="700" y="250" text-anchor="middle" class="b">梯度保留并逐步累积</text>
-<path d="M805 230H870" class="f"/>
-<rect x="870" y="170" width="270" height="120" class="box" fill="#f5f3ff" stroke="#8b5cf6"/><text x="1005" y="215" text-anchor="middle" class="l">一次参数更新</text><text x="1005" y="250" text-anchor="middle" class="b">完成一次有效 batch 的更新</text>
-<rect x="215" y="365" width="250" height="105" class="box" fill="#e0f2fe" stroke="#0284c7"/><text x="340" y="408" text-anchor="middle" class="l">单步显存峰值</text><text x="340" y="443" text-anchor="middle" class="b">主要随 micro-batch 的 activation 变化</text>
-<rect x="515" y="365" width="250" height="105" class="box" fill="#fef3c7" stroke="#d97706"/><text x="640" y="408" text-anchor="middle" class="l">长期驻留状态</text><text x="640" y="443" text-anchor="middle" class="b">参数、梯度、optimizer state 仍需保留</text>
-<rect x="815" y="365" width="250" height="105" class="box" fill="#dcfce7" stroke="#16a34a"/><text x="940" y="408" text-anchor="middle" class="l">更新口径</text><text x="940" y="443" text-anchor="middle" class="b">梯度尺度与更新时机决定可比性</text>
-<path d="M425 290V365" class="f"/><path d="M700 290V365" class="f"/><path d="M1005 290V365" class="f"/>
-<text x="600" y="520" text-anchor="middle" class="s">主链说明训练如何推进；下方说明显存峰值、长期状态和更新口径的对应关系。</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="t d">
+<title id="t">梯度累积训练路径总览</title>
+<desc id="d">一次逻辑更新由多个 micro-batch 组成，梯度在多次反向传播中累积；单次 activation 峰值下降，但参数、梯度和优化器状态仍然驻留，最终需要保持更新口径一致。</desc>
+<defs>
+  <style>
+    text{font-family:"Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif;fill:#172033}
+    .title{font-size:29px;font-weight:700}.sub{font-size:15px;fill:#475569}
+    .group{font-size:18px;font-weight:700}.head{font-size:17px;font-weight:700}
+    .body{font-size:14px}.small{font-size:12px;fill:#475569}
+    .panel{stroke-width:2;rx:16}.node{fill:#fff;stroke:#cbd5e1;stroke-width:1.5;rx:11}
+    .flow{stroke:#64748b;stroke-width:2.5;fill:none}.arrow{fill:#64748b}
+  </style>
+</defs>
+<rect width="1200" height="620" fill="#f8fafc"/>
+<text x="600" y="42" text-anchor="middle" class="title">梯度累积：一次逻辑更新如何展开</text>
+<text x="600" y="70" text-anchor="middle" class="sub">同一逻辑 batch 被拆成多次计算，同时观察显存峰值与参数更新口径</text>
+
+<rect x="405" y="100" width="390" height="82" fill="#e0f2fe" stroke="#7dd3fc" class="panel"/>
+<text x="600" y="135" text-anchor="middle" class="group">一次逻辑更新</text>
+<text x="600" y="161" text-anchor="middle" class="body">有效 batch = micro-batch × 累积次数</text>
+
+<path d="M600 182V218H205M600 218H600M600 218H995" class="flow"/>
+<path d="M205 218V270M600 218V270M995 218V270" class="flow"/>
+<polygon points="205,276 199,264 211,264" class="arrow"/>
+<polygon points="600,276 594,264 606,264" class="arrow"/>
+<polygon points="995,276 989,264 1001,264" class="arrow"/>
+
+<rect x="45" y="270" width="320" height="250" fill="#eff6ff" stroke="#60a5fa" class="panel"/>
+<text x="205" y="304" text-anchor="middle" class="group">计算拆分</text>
+<rect x="85" y="335" width="240" height="68" class="node"/>
+<text x="205" y="363" text-anchor="middle" class="head">逻辑 batch</text>
+<text x="205" y="385" text-anchor="middle" class="small">一次更新看到的样本总量</text>
+<path d="M205 403V425" class="flow"/><polygon points="205,431 199,419 211,419" class="arrow"/>
+<rect x="85" y="431" width="240" height="68" class="node"/>
+<text x="205" y="459" text-anchor="middle" class="head">micro-batch</text>
+<text x="205" y="481" text-anchor="middle" class="small">每次只处理一部分样本</text>
+
+<rect x="440" y="270" width="320" height="250" fill="#fef3c7" stroke="#f59e0b" class="panel"/>
+<text x="600" y="304" text-anchor="middle" class="group">显存变化</text>
+<rect x="480" y="335" width="240" height="68" class="node"/>
+<text x="600" y="363" text-anchor="middle" class="head">单次 activation 峰值</text>
+<text x="600" y="385" text-anchor="middle" class="small">随 micro-batch 规模变化</text>
+<path d="M600 403V425" class="flow"/><polygon points="600,431 594,419 606,419" class="arrow"/>
+<rect x="480" y="431" width="240" height="68" class="node"/>
+<text x="600" y="459" text-anchor="middle" class="head">长期驻留状态</text>
+<text x="600" y="481" text-anchor="middle" class="small">参数、梯度、optimizer state</text>
+
+<rect x="835" y="270" width="320" height="250" fill="#dcfce7" stroke="#4ade80" class="panel"/>
+<text x="995" y="304" text-anchor="middle" class="group">更新一致性</text>
+<rect x="875" y="335" width="240" height="68" class="node"/>
+<text x="995" y="363" text-anchor="middle" class="head">每个 loss 除以 K</text>
+<text x="995" y="385" text-anchor="middle" class="small">保持平均梯度尺度</text>
+<path d="M995 403V425" class="flow"/><polygon points="995,431 989,419 1001,419" class="arrow"/>
+<rect x="875" y="431" width="240" height="68" class="node"/>
+<text x="995" y="459" text-anchor="middle" class="head">累积完成后更新一次</text>
+<text x="995" y="481" text-anchor="middle" class="small">一次逻辑 batch 一次参数更新</text>
+
 </svg>

@@ -1,48 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
-  <title id="title">PagedAttention：逻辑块如何映射到物理 KV Cache</title>
-  <desc id="desc">展示请求的逻辑 token 经过逻辑分块和 Block Table 映射到非连续物理 KV Block，并在 Prefill、Decode 和完成释放阶段变化。</desc>
-  <defs>
-    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#f8fafc"/><stop offset="1" stop-color="#ecfeff"/></linearGradient>
-    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#475569"/></marker>
-    <marker id="purpleArrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#7c3aed"/></marker>
-    <style>
-      .title{font:700 30px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#0f172a}.sub{font:500 17px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#475569}.group{font:700 18px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#334155}.label{font:700 19px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#111827}.small{font:500 15px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#334155}.tiny{font:500 13px "Noto Sans SC","Microsoft YaHei",sans-serif;fill:#64748b}.box{stroke-width:3;rx:16;ry:16}.flow{stroke:#475569;stroke-width:4;fill:none;marker-end:url(#arrow)}.map{stroke:#7c3aed;stroke-width:3;fill:none;stroke-dasharray:8 7;marker-end:url(#purpleArrow)}
-    </style>
-  </defs>
-  <rect width="1600" height="900" fill="url(#bg)"/>
-  <text x="65" y="58" class="title">PagedAttention：逻辑块如何映射到物理 KV Cache</text>
-  <text x="65" y="92" class="sub">请求保持逻辑连续；Block Table 负责地址转换，物理 KV Block 可以非连续、按需申请和复用。</text>
-
-  <rect x="50" y="125" width="1500" height="255" rx="24" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
-  <text x="80" y="160" class="group">逻辑视图：请求只关心 token 的顺序</text>
-  <rect x="85" y="205" width="290" height="115" class="box" fill="#fff7ed" stroke="#f59e0b"/>
-  <text x="230" y="245" text-anchor="middle" class="label">请求序列</text><text x="230" y="275" text-anchor="middle" class="small">prompt + generated tokens</text><text x="230" y="299" text-anchor="middle" class="tiny">逻辑长度持续增长</text>
-  <rect x="470" y="205" width="300" height="115" class="box" fill="#eff6ff" stroke="#3b82f6"/>
-  <text x="620" y="245" text-anchor="middle" class="label">逻辑 Block</text><text x="620" y="275" text-anchor="middle" class="small">按 token 位置切成固定大小</text><text x="620" y="299" text-anchor="middle" class="tiny">Block 0 · Block 1 · Block 2</text>
-  <rect x="865" y="190" width="330" height="145" class="box" fill="#f5f3ff" stroke="#8b5cf6"/>
-  <text x="1030" y="230" text-anchor="middle" class="label">Block Table</text><text x="1030" y="262" text-anchor="middle" class="small">逻辑块 → 物理块</text><text x="930" y="298" class="tiny">0 → 5</text><text x="1015" y="298" class="tiny">1 → 2</text><text x="1100" y="298" class="tiny">2 → 8</text>
-  <text x="1030" y="322" text-anchor="middle" class="tiny">映射表随请求保存</text>
-  <path d="M375 262H470" class="flow"/><path d="M770 262H865" class="flow"/>
-
-  <rect x="50" y="415" width="1500" height="265" rx="24" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
-  <text x="80" y="450" class="group">物理视图：块可以分散在显存池中</text>
-  <text x="95" y="500" class="small">逻辑 Block</text>
-  <rect x="90" y="520" width="150" height="80" class="box" fill="#dbeafe" stroke="#3b82f6"/><text x="165" y="552" text-anchor="middle" class="label">Block 0</text><text x="165" y="578" text-anchor="middle" class="tiny">逻辑位置</text>
-  <rect x="270" y="520" width="150" height="80" class="box" fill="#dbeafe" stroke="#3b82f6"/><text x="345" y="552" text-anchor="middle" class="label">Block 1</text><text x="345" y="578" text-anchor="middle" class="tiny">逻辑位置</text>
-  <rect x="450" y="520" width="150" height="80" class="box" fill="#dbeafe" stroke="#3b82f6"/><text x="525" y="552" text-anchor="middle" class="label">Block 2</text><text x="525" y="578" text-anchor="middle" class="tiny">逻辑位置</text>
-  <text x="700" y="500" class="small">物理 KV Cache 池</text>
-  <rect x="680" y="520" width="125" height="80" class="box" fill="#ecfccb" stroke="#65a30d"/><text x="742" y="552" text-anchor="middle" class="label">物理 5</text><text x="742" y="578" text-anchor="middle" class="tiny">已占用</text>
-  <rect x="830" y="520" width="125" height="80" class="box" fill="#f1f5f9" stroke="#94a3b8"/><text x="892" y="552" text-anchor="middle" class="label">物理 6</text><text x="892" y="578" text-anchor="middle" class="tiny">空闲</text>
-  <rect x="980" y="520" width="125" height="80" class="box" fill="#ecfccb" stroke="#65a30d"/><text x="1042" y="552" text-anchor="middle" class="label">物理 2</text><text x="1042" y="578" text-anchor="middle" class="tiny">已占用</text>
-  <rect x="1130" y="520" width="125" height="80" class="box" fill="#f1f5f9" stroke="#94a3b8"/><text x="1192" y="552" text-anchor="middle" class="label">物理 7</text><text x="1192" y="578" text-anchor="middle" class="tiny">空闲</text>
-  <rect x="1280" y="520" width="125" height="80" class="box" fill="#ecfccb" stroke="#65a30d"/><text x="1342" y="552" text-anchor="middle" class="label">物理 8</text><text x="1342" y="578" text-anchor="middle" class="tiny">已占用</text>
-  <path d="M165 600C300 650 620 650 742 600" class="map"/><path d="M345 600C500 690 900 690 1042 600" class="map"/><path d="M525 600C750 710 1200 710 1342 600" class="map"/>
-  <text x="1450" y="555" class="tiny">非连续物理块</text><text x="1450" y="578" class="tiny">仍可逻辑连续读取</text>
-
-  <rect x="50" y="715" width="1500" height="135" rx="24" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
-  <text x="80" y="750" class="group">生命周期</text>
-  <rect x="220" y="735" width="260" height="70" class="box" fill="#fef3c7" stroke="#d97706"/><text x="350" y="765" text-anchor="middle" class="label">Prefill</text><text x="350" y="790" text-anchor="middle" class="tiny">按 prompt 长度申请 Block</text>
-  <rect x="650" y="735" width="260" height="70" class="box" fill="#dcfce7" stroke="#16a34a"/><text x="780" y="765" text-anchor="middle" class="label">Decode</text><text x="780" y="790" text-anchor="middle" class="tiny">跨边界时追加新 Block</text>
-  <rect x="1080" y="735" width="260" height="70" class="box" fill="#fee2e2" stroke="#dc2626"/><text x="1210" y="765" text-anchor="middle" class="label">完成 / 释放</text><text x="1210" y="790" text-anchor="middle" class="tiny">归还物理块并支持复用</text>
-  <path d="M480 770H650" class="flow"/><path d="M910 770H1080" class="flow"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="620" viewBox="0 0 1400 620" role="img" aria-labelledby="title desc">
+<title id="title">PagedAttention：逻辑块如何映射到物理 KV Cache</title><desc id="desc">请求的逻辑 token 经过固定大小的逻辑分块和 Block Table 映射到可以非连续分配的物理 KV Block。</desc>
+<defs><style>text{font-family:"Noto Sans CJK SC","Microsoft YaHei",Arial,sans-serif;fill:#172033}.title{font-size:29px;font-weight:700}.sub{font-size:15px;fill:#475569}.label{font-size:18px;font-weight:700}.small{font-size:13px;fill:#475569}.box{stroke-width:2.5;rx:16}.flow{stroke:#64748b;stroke-width:2.5;fill:none}.arrow{fill:#64748b}.map{stroke:#7c3aed;stroke-width:2.5;stroke-dasharray:7 6;fill:none}.mapArrow{fill:#7c3aed}</style></defs>
+<rect width="1400" height="620" fill="#f8fafc"/><text x="700" y="42" text-anchor="middle" class="title">PagedAttention：逻辑地址与物理存储分离</text><text x="700" y="70" text-anchor="middle" class="sub">请求看到连续 token；Block Table 把逻辑 Block 映射到非连续的物理 KV Block</text>
+<rect x="505" y="100" width="390" height="82" class="box" fill="#e0f2fe" stroke="#7dd3fc"/><text x="700" y="135" text-anchor="middle" class="label">请求 token 序列</text><text x="700" y="161" text-anchor="middle" class="small">逻辑长度随 Prefill 与 Decode 增长</text>
+<path d="M700 182V220" class="flow"/><polygon points="700,226 694,214 706,214" class="arrow"/>
+<rect x="75" y="250" width="350" height="250" class="box" fill="#fff7ed" stroke="#fdba74"/><text x="250" y="284" text-anchor="middle" class="label">逻辑视图</text><rect x="120" y="320" width="260" height="68" class="box" fill="#fff" stroke="#f59e0b"/><text x="250" y="348" text-anchor="middle" class="label">逻辑 Block</text><text x="250" y="370" text-anchor="middle" class="small">按固定 token 数分块</text><path d="M250 388V410" class="flow"/><polygon points="250,416 244,404 256,404" class="arrow"/><rect x="120" y="416" width="260" height="58" class="box" fill="#fff" stroke="#f59e0b"/><text x="250" y="451" text-anchor="middle" class="small">顺序保持连续</text>
+<rect x="525" y="250" width="350" height="250" class="box" fill="#f5f3ff" stroke="#c4b5fd"/><text x="700" y="284" text-anchor="middle" class="label">地址映射</text><rect x="570" y="320" width="260" height="68" class="box" fill="#fff" stroke="#8b5cf6"/><text x="700" y="348" text-anchor="middle" class="label">Block Table</text><text x="700" y="370" text-anchor="middle" class="small">逻辑 Block → 物理 Block</text><path d="M700 388V410" class="flow"/><polygon points="700,416 694,404 706,404" class="arrow"/><rect x="570" y="416" width="260" height="58" class="box" fill="#fff" stroke="#8b5cf6"/><text x="700" y="451" text-anchor="middle" class="small">为请求保存映射</text>
+<rect x="975" y="250" width="350" height="250" class="box" fill="#ecfccb" stroke="#bef264"/><text x="1150" y="284" text-anchor="middle" class="label">物理存储</text><rect x="1020" y="320" width="260" height="68" class="box" fill="#fff" stroke="#65a30d"/><text x="1150" y="348" text-anchor="middle" class="label">物理 KV Block</text><text x="1150" y="370" text-anchor="middle" class="small">显存池中的固定大小块</text><path d="M1150 388V410" class="flow"/><polygon points="1150,416 1144,404 1156,404" class="arrow"/><rect x="1020" y="416" width="260" height="58" class="box" fill="#fff" stroke="#65a30d"/><text x="1150" y="451" text-anchor="middle" class="small">非连续、按需分配与回收</text>
+<path d="M425 354H525M875 354H975" class="map"/><polygon points="531,354 519,348 519,360" class="mapArrow"/><polygon points="981,354 969,348 969,360" class="mapArrow"/>
+<polygon points="700,226 694,214 706,214" class="arrow"/><polygon points="250,416 244,404 256,404" class="arrow"/><polygon points="700,416 694,404 706,404" class="arrow"/><polygon points="1150,416 1144,404 1156,404" class="arrow"/>
 </svg>

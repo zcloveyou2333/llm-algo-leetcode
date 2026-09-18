@@ -27,9 +27,9 @@
 
 ## 判定原则
 
-- `keep`：收益不明显，或者精度 / 部署代价太高。
+- `accept`：在固定模型、硬件、backend 和 workload 下，质量与资源指标均达标，并且收益具有重复性。
 - `tune`：方向对，但量化粒度、后端、cache policy 或 workload 还要继续调。
-- `switch`：收益稳定，并且和目标硬件、服务目标匹配。
+- `reject`：无法加载、质量不达标，或资源代价超过预算。
 
 ## 最小实验设计
 
@@ -41,8 +41,37 @@
 |:---|:---|:---|
 | 加载 | 模型格式、量化方法、backend、版本、错误信息 | `reject` 或记录为兼容性问题 |
 | 运行 | 显存、TTFT、TPOT、端到端延迟、吞吐、并发 | 不能只依据文件大小判断 |
-| 质量 | 固定评测集或任务指标、输出差异 | 质量不达门槛不能 `switch` |
+| 质量 | 固定评测集或任务指标、输出差异 | 质量不达门槛只能 `tune` 或 `reject` |
 | 重复与对照 | baseline、重复次数、硬件和 workload | 证据不足只能 `tune` |
+
+训练适配产物和推理量化产物要分开记录。QLoRA 输出通常是 adapter 或合并后的训练模型；GPTQ / AWQ / GGUF / FP8 输出则是面向推理加载或执行的 artifact。它们可以在同一项目链路中衔接，但不能用“adapter 能加载”替代“量化 backend 能加载”。
+
+| 产物类型 | 典型来源 | 部署前需要确认 |
+|:---|:---|:---|
+| 训练适配产物 | QLoRA、LoRA、QAT | adapter / merged model、revision、合并方式、任务质量 |
+| 权重量化产物 | GPTQ、AWQ、W8A16 | quant config、量化粒度、loader、实际 kernel |
+| 文件格式产物 | GGUF 等 | 文件版本、匹配 backend、执行路径和兼容性 |
+| 运行时量化配置 | FP8、KV Cache quant | dtype、scale、硬件支持、Cache 行为和质量 |
+
+部署验证需要把“方法、格式、backend、kernel”分成四个字段记录。它们不是同义词：方法说明量化参数如何得到，格式说明 artifact 如何保存，backend 说明由谁加载和调度，kernel 才说明实际执行路径。
+
+| 量化路线 | 典型格式或配置 | 常见 backend 方向 | 必须确认的执行证据 |
+|:---|:---|:---|:---|
+| W8A16 / 权重-only | INT8 权重、scale | Transformers、vLLM 等 | loader、反量化位置、显存与吞吐 |
+| GPTQ | GPTQ config 与量化权重 | vLLM、Transformers 等 | quant config、group size、实际 kernel |
+| AWQ | AWQ config 与量化权重 | vLLM、TensorRT-LLM 等 | 权重格式、硬件支持、kernel 路径 |
+| GGUF | GGUF 文件 | llama.cpp 等匹配 backend | 文件版本、offload、执行后端 |
+| FP8 | FP8 dtype、scale 配置 | vLLM、TensorRT-LLM 等 | GPU 架构、scale、Tensor Core 路径 |
+| KV Cache quant | Cache dtype 与量化参数 | 目标 serving backend | Cache 分配、TTFT、TPOT、质量 |
+
+QLoRA 的训练适配结果需要经过单独的 artifact 转换链：先确认 adapter 或 merged model 的 revision 和质量，再选择部署前权重量化或运行时配置，最后回到 66 的浮点 baseline 与 67 的真实 backend 对照。adapter 能加载，只能证明训练产物可用；它不能证明量化部署路径可用。
+
+| 阶段 | 主要产物 | 最小检查 |
+|:---|:---|:---|
+| 训练适配 | adapter 或 merged model | revision、合并方式、任务质量 |
+| 部署转换 | GPTQ / AWQ / GGUF 或运行时配置 | 格式、量化参数、文件完整性 |
+| backend 加载 | 可运行的服务 artifact | loader、版本、kernel 或执行路径 |
+| workload 对照 | baseline / candidate 结果 | 质量、显存、TTFT、TPOT、吞吐、P99 |
 
 ## 报告应该怎么写
 
@@ -79,4 +108,4 @@
 
 ## 回到项目
 
-将结论回填到 `65 QLoRA 选择 -> 66 推理性能比较 -> 67 量化推理与部署`。如果结果只证明模型变小，却没有证明 workload 下的系统收益，应保留为 `tune` 或 `reject`，不要写成已完成优化。
+部署结论回填到 `66 推理性能比较 -> 67 量化推理与部署`；如果 PTQ 后质量不足，再按需回到 `65 QLoRA 选择` 生成新的模型或 artifact，并重新进入 66 / 67 对照。如果结果只证明模型变小，却没有证明 workload 下的系统收益，应保留为 `tune` 或 `reject`，不要写成已完成优化。

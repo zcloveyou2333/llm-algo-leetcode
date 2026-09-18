@@ -1,75 +1,65 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="660" viewBox="0 0 1200 660">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560">
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L10,3 L0,6 Z" fill="#52606d"/>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#52606d"/>
     </marker>
     <style>
-      .title{font:700 27px sans-serif;fill:#172b4d}
-      .head{font:700 19px sans-serif;fill:#172b4d}
-      .label{font:600 17px sans-serif;fill:#172b4d}
-      .small{font:15px sans-serif;fill:#344563}
+      .title{font-family:sans-serif;font-size:28px;font-weight:700;fill:#172b4d}
+      .section{font-family:sans-serif;font-size:20px;font-weight:700;fill:#172b4d}
+      .label{font-family:sans-serif;font-size:17px;font-weight:600;fill:#172b4d}
+      .small{font-family:sans-serif;font-size:15px;fill:#344563}
       .box{stroke:#52606d;stroke-width:2;rx:10}
+      .metric{stroke:#8aa29a;stroke-width:1.8;rx:9}
       .line{stroke:#52606d;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
     </style>
   </defs>
-  <rect width="1200" height="450" fill="#f7f9fc"/>
-  <text x="600" y="42" text-anchor="middle" class="title">73：一次 training step 的测量边界</text>
 
-  <text x="600" y="82" text-anchor="middle" class="head">当前模板的完整测量范围</text>
-  <rect x="70" y="105" width="1060" height="125" rx="16" fill="#e7f0ff" stroke="#2f5597" stroke-width="3"/>
-  <text x="600" y="129" text-anchor="middle" class="small">73 计入总 step time 与峰值显存</text>
+  <rect width="1200" height="560" fill="#f7f9fc"/>
+  <text x="600" y="42" text-anchor="middle" class="title">一次完整训练 step：阶段顺序与记录结果</text>
 
-  <rect x="105" y="155" width="165" height="50" class="box" fill="#ffffff"/>
-  <text x="187" y="186" text-anchor="middle" class="label">清零梯度</text>
-  <rect x="315" y="155" width="165" height="50" class="box" fill="#ffffff"/>
-  <text x="397" y="186" text-anchor="middle" class="label">前向计算 / 损失</text>
-  <rect x="525" y="155" width="165" height="50" class="box" fill="#ffffff"/>
-  <text x="607" y="186" text-anchor="middle" class="label">反向传播</text>
-  <rect x="735" y="155" width="165" height="50" class="box" fill="#ffffff"/>
-  <text x="817" y="186" text-anchor="middle" class="label">更新参数</text>
-  <rect x="945" y="155" width="145" height="50" class="box" fill="#ffffff"/>
-  <text x="1017" y="186" text-anchor="middle" class="label">同步确认</text>
-  <path d="M270 180 L315 180 M480 180 L525 180 M690 180 L735 180 M900 180 L945 180" class="line"/>
+  <!-- 总：一次完整训练 step -->
+  <rect x="35" y="72" width="1130" height="220" rx="16" fill="#e7f0ff" stroke="#2f5597" stroke-width="3"/>
+  <text x="600" y="105" text-anchor="middle" class="section">一次完整 training step</text>
+  <text x="600" y="132" text-anchor="middle" class="small">从准备一个 batch 开始，到完成一次参数更新结束</text>
 
-  <rect x="70" y="270" width="300" height="82" class="box" fill="#fff3d6" stroke-dasharray="8 6"/>
-  <text x="220" y="301" text-anchor="middle" class="label">输入准备 / 设备拷贝</text>
-  <text x="220" y="328" text-anchor="middle" class="small">当前不单独拆分</text>
+  <!-- 分：训练阶段 -->
+  <rect x="65" y="174" width="175" height="66" class="box" fill="#fff3d6" stroke-dasharray="8 6"/>
+  <text x="152" y="203" text-anchor="middle" class="label">输入准备</text>
+  <text x="152" y="226" text-anchor="middle" class="small">batch / 设备</text>
 
-  <rect x="450" y="270" width="300" height="82" class="box" fill="#e3fcef"/>
-  <text x="600" y="301" text-anchor="middle" class="label">74：阶段归因</text>
-  <text x="600" y="328" text-anchor="middle" class="small">数据、算子、同步和搬运轨迹</text>
+  <rect x="270" y="174" width="175" height="66" class="box" fill="#ffffff"/>
+  <text x="357" y="212" text-anchor="middle" class="label">清零梯度</text>
 
-  <rect x="830" y="270" width="300" height="82" class="box" fill="#f0e9ff"/>
-  <text x="980" y="301" text-anchor="middle" class="label">76：策略比较</text>
-  <text x="980" y="328" text-anchor="middle" class="small">检查点重算 / 激活卸载搬运</text>
+  <rect x="475" y="174" width="175" height="66" class="box" fill="#ffffff"/>
+  <text x="562" y="203" text-anchor="middle" class="label">前向与 loss</text>
+  <text x="562" y="226" text-anchor="middle" class="small">产生激活</text>
 
-  <path d="M220 230 L220 270" class="line"/>
-  <path d="M600 230 L600 270" class="line"/>
-  <path d="M980 230 L980 270" class="line"/>
-  <text x="600" y="382" text-anchor="middle" class="head">从机制到项目的验证链</text>
-  <text x="600" y="414" text-anchor="middle" class="small">机制先解释状态如何产生，项目再逐步增加真实测量和决策约束</text>
+  <rect x="680" y="174" width="175" height="66" class="box" fill="#ffffff"/>
+  <text x="767" y="212" text-anchor="middle" class="label">反向传播</text>
 
-  <rect x="40" y="435" width="200" height="58" class="box" fill="#fff3d6"/>
-  <text x="140" y="470" text-anchor="middle" class="label">17 自动微分</text>
-  <rect x="260" y="435" width="200" height="58" class="box" fill="#fff3d6"/>
-  <text x="360" y="470" text-anchor="middle" class="label">18 反向传播 / 激活值</text>
-  <rect x="480" y="435" width="200" height="58" class="box" fill="#fff3d6"/>
-  <text x="580" y="470" text-anchor="middle" class="label">12 梯度累积</text>
-  <rect x="700" y="435" width="200" height="58" class="box" fill="#fff3d6"/>
-  <text x="800" y="470" text-anchor="middle" class="label">19 检查点重算</text>
-  <rect x="920" y="435" width="200" height="58" class="box" fill="#fff3d6"/>
-  <text x="1020" y="470" text-anchor="middle" class="label">42 激活卸载</text>
-  <path d="M240 464 L260 464 M460 464 L480 464 M680 464 L700 464 M900 464 L920 464" class="line"/>
+  <rect x="885" y="174" width="235" height="66" class="box" fill="#ffffff"/>
+  <text x="1002" y="203" text-anchor="middle" class="label">optimizer.step</text>
+  <text x="1002" y="226" text-anchor="middle" class="small">完成参数更新</text>
 
-  <rect x="95" y="525" width="220" height="58" class="box" fill="#e3fcef"/>
-  <text x="205" y="560" text-anchor="middle" class="label">73 训练基线</text>
-  <rect x="345" y="525" width="220" height="58" class="box" fill="#e3fcef"/>
-  <text x="455" y="560" text-anchor="middle" class="label">76 策略比较</text>
-  <rect x="595" y="525" width="220" height="58" class="box" fill="#e3fcef"/>
-  <text x="705" y="560" text-anchor="middle" class="label">75 预算决策</text>
-  <rect x="845" y="525" width="220" height="58" class="box" fill="#e3fcef"/>
-  <text x="955" y="560" text-anchor="middle" class="label">74 性能分析</text>
-  <path d="M315 554 L345 554 M565 554 L595 554 M815 554 L845 554" class="line"/>
-  <path d="M580 493 L580 515" class="line"/>
-  <text x="600" y="625" text-anchor="middle" class="small">73 回答“完整 step 的平均成本是多少”；76、75、74 逐步比较策略、约束预算并解释原因。</text>
+  <line x1="240" y1="207" x2="265" y2="207" class="line"/>
+  <line x1="445" y1="207" x2="470" y2="207" class="line"/>
+  <line x1="650" y1="207" x2="675" y2="207" class="line"/>
+  <line x1="855" y1="207" x2="880" y2="207" class="line"/>
+
+  <!-- 从完整流程汇总到记录结果 -->
+  <line x1="600" y1="292" x2="600" y2="342" class="line"/>
+  <rect x="185" y="350" width="830" height="145" rx="16" fill="#e3fcef" stroke="#5c8d77" stroke-width="2.5"/>
+  <text x="600" y="383" text-anchor="middle" class="section">这个 step 统一记录的结果</text>
+
+  <rect x="215" y="410" width="230" height="62" class="metric" fill="#f0fdf4"/>
+  <text x="330" y="437" text-anchor="middle" class="label">时间与吞吐</text>
+  <text x="330" y="459" text-anchor="middle" class="small">step time · samples/s</text>
+
+  <rect x="475" y="410" width="230" height="62" class="metric" fill="#f0fdf4"/>
+  <text x="590" y="437" text-anchor="middle" class="label">显存</text>
+  <text x="590" y="459" text-anchor="middle" class="small">peak allocated · reserved</text>
+
+  <rect x="735" y="410" width="230" height="62" class="metric" fill="#f0fdf4"/>
+  <text x="850" y="437" text-anchor="middle" class="label">训练状态</text>
+  <text x="850" y="459" text-anchor="middle" class="small">loss · OOM · status</text>
 </svg>

@@ -30,8 +30,7 @@
 - [08. Architecture Tricks | 架构技巧](./08_Architecture_Tricks.md)
 - [09. SFT Training Loop | SFT 训练循环](./09_SFT_Training_Loop.md)
 - [13. End-to-End Fine-Tuning Experiment | 端到端微调实验](./13_End_to_End_Fine_Tuning_Experiment.md)
-
-
+---
 ### Step 1（项目设计）：明确问题与实验目的
 
 本节默认你已经看过 Block、Attention 和最小训练循环；现在不要求你发明新模型，而是练习判断一个结构改动是否值得进入下一轮实验。先写一条可检验的问题，例如“把 MHA 改成 GQA，能否在不超过参数预算的前提下减少 KV 投影规模”。
@@ -544,9 +543,10 @@ if RUN_PROJECT_EXPORT:
 
 ## 相关阅读
 
-完成结构字段、参数账本和候选决策后，可以继续阅读真实模型配置与架构实现，再进入微调项目比较结构改动的代价。
+以下资料按“模型结构论文 → 开源实现 → 后续项目”排列，用于把结构字段和参数账本连接到真实模型配置与微调代价。
 
 - [LLaMA 原论文：LLaMA](https://arxiv.org/abs/2302.13971)
+- [Attention Is All You Need 论文](https://arxiv.org/abs/1706.03762)
 - [Hugging Face Transformers 官方仓库](https://github.com/huggingface/transformers)
 - [62. Instruction Fine-Tuning Project | 指令微调项目](./62_Instruction_Fine_Tuning_Project.md)
 - [63. LoRA Variants Benchmark | LoRA 变体对比项目](./63_LoRA_Variants_Benchmark.md)

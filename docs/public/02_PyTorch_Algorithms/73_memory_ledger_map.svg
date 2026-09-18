@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620">
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L10,3 L0,6 Z" fill="#52606d"/>
@@ -12,26 +12,14 @@
       .arrow{stroke:#52606d;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
     </style>
   </defs>
-  <rect width="1200" height="640" fill="#f7f9fc"/>
-  <text x="600" y="42" text-anchor="middle" class="title">73：训练流程、显存对象与 GPU 观测</text>
+  <rect width="1200" height="620" fill="#f7f9fc"/>
+  <text x="600" y="42" text-anchor="middle" class="title">训练显存账本：对象、因素与记录字段</text>
 
-  <rect x="75" y="65" width="180" height="48" class="box" fill="#e0f2fe"/>
-  <text x="165" y="95" text-anchor="middle" class="label">输入批次</text>
-  <rect x="315" y="65" width="180" height="48" class="box" fill="#dcfce7"/>
-  <text x="405" y="95" text-anchor="middle" class="label">前向计算 / 损失</text>
-  <rect x="555" y="65" width="180" height="48" class="box" fill="#fef3c7"/>
-  <text x="645" y="95" text-anchor="middle" class="label">反向传播</text>
-  <rect x="795" y="65" width="250" height="48" class="box" fill="#fce7f3"/>
-  <text x="920" y="95" text-anchor="middle" class="label">更新参数</text>
-  <line x1="255" y1="89" x2="305" y2="89" class="arrow"/>
-  <line x1="495" y1="89" x2="545" y2="89" class="arrow"/>
-  <line x1="735" y1="89" x2="785" y2="89" class="arrow"/>
-
-  <g transform="translate(0,55)">
+  <g transform="translate(0,20)">
 
   <text x="190" y="95" text-anchor="middle" class="section">训练中需要解释的对象</text>
   <text x="600" y="95" text-anchor="middle" class="section">影响因素</text>
-  <text x="1000" y="95" text-anchor="middle" class="section">可以观测的证据</text>
+  <text x="1000" y="95" text-anchor="middle" class="section">静态账本字段</text>
 
   <rect x="45" y="120" width="290" height="72" class="box" fill="#e7f0ff"/>
   <text x="190" y="150" text-anchor="middle" class="label">参数 / 梯度</text>
@@ -47,7 +35,7 @@
 
   <rect x="45" y="405" width="290" height="72" class="box" fill="#e7f0ff"/>
   <text x="190" y="435" text-anchor="middle" class="label">临时张量 / workspace</text>
-  <text x="190" y="462" text-anchor="middle" class="small">短时分配与算子工作区</text>
+  <text x="190" y="462" text-anchor="middle" class="small">短时分配与 loss 中间量</text>
 
   <rect x="455" y="145" width="290" height="72" class="box" fill="#fff3d6"/>
   <text x="600" y="175" text-anchor="middle" class="label">模型与数据类型</text>
@@ -59,19 +47,19 @@
 
   <rect x="455" y="365" width="290" height="72" class="box" fill="#fff3d6"/>
   <text x="600" y="395" text-anchor="middle" class="label">实现与运行时</text>
-  <text x="600" y="422" text-anchor="middle" class="small">优化器、算子、搬运、同步</text>
+  <text x="600" y="422" text-anchor="middle" class="small">优化器、算子与分配方式</text>
 
   <rect x="865" y="145" width="290" height="72" class="box" fill="#e3fcef"/>
-  <text x="1010" y="175" text-anchor="middle" class="label">显存证据</text>
-  <text x="1010" y="202" text-anchor="middle" class="small">已分配 / 已预留峰值、OOM</text>
+  <text x="1010" y="175" text-anchor="middle" class="label">对象字节数</text>
+  <text x="1010" y="202" text-anchor="middle" class="small">参数、梯度、optimizer state</text>
 
   <rect x="865" y="255" width="290" height="72" class="box" fill="#e3fcef"/>
-  <text x="1010" y="285" text-anchor="middle" class="label">性能证据</text>
-  <text x="1010" y="312" text-anchor="middle" class="small">单步耗时、样本吞吐</text>
+  <text x="1010" y="285" text-anchor="middle" class="label">状态字节数</text>
+  <text x="1010" y="312" text-anchor="middle" class="small">参数、梯度、optimizer state</text>
 
   <rect x="865" y="365" width="290" height="72" class="box" fill="#e3fcef"/>
-  <text x="1010" y="395" text-anchor="middle" class="label">归因证据</text>
-  <text x="1010" y="422" text-anchor="middle" class="small">性能分析轨迹、同步与搬运</text>
+  <text x="1010" y="395" text-anchor="middle" class="label">对象说明</text>
+  <text x="1010" y="422" text-anchor="middle" class="small">生命周期与是否计入账本</text>
 
   <path d="M335 156 C380 156 405 181 455 181" class="arrow"/>
   <path d="M335 251 C385 251 410 291 455 291" class="arrow"/>
@@ -81,7 +69,5 @@
   <path d="M745 291 C795 291 815 291 865 291" class="arrow"/>
   <path d="M745 401 C795 401 815 401 865 401" class="arrow"/>
 
-  <rect x="250" y="535" width="700" height="58" rx="12" fill="#172b4d"/>
-  <text x="600" y="571" text-anchor="middle" style="font:600 18px sans-serif;fill:white">73 记录完整训练步；76 比较策略；74 用轨迹解释原因</text>
   </g>
 </svg>

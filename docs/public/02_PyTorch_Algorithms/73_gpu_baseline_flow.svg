@@ -1,41 +1,89 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="330" viewBox="0 0 1200 330">
+<svg xmlns="http://www.w3.org/2000/svg" width="1740" height="650" viewBox="0 0 1740 650">
   <defs>
-    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="3" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L9,3 L0,6 Z" fill="#64748b"/>
     </marker>
     <style>
-      .title { font: 700 24px sans-serif; fill: #0f172a; }
-      .label { font: 700 18px sans-serif; fill: #0f172a; }
-      .text { font: 15px sans-serif; fill: #334155; }
+      .title { font: 700 26px sans-serif; fill: #0f172a; }
+      .group { font: 700 18px sans-serif; fill: #334155; }
+      .label { font: 700 17px sans-serif; fill: #0f172a; }
+      .text { font: 14px sans-serif; fill: #334155; }
       .box { stroke: #94a3b8; stroke-width: 2; rx: 14; }
+      .metric { stroke: #cbd5e1; stroke-width: 1.5; rx: 9; }
+      .flow { stroke: #64748b; stroke-width: 2.5; fill: none; marker-end: url(#arrow); }
     </style>
   </defs>
-  <rect width="1200" height="330" fill="#f8fafc"/>
-  <text x="600" y="42" text-anchor="middle" class="title">73：GPU 训练 baseline 实验流程</text>
-  <rect x="35" y="105" width="190" height="125" class="box" fill="#e0f2fe"/>
-  <text x="130" y="140" text-anchor="middle" class="label">环境检查</text>
-  <text x="130" y="170" text-anchor="middle" class="text">CUDA / GPU</text>
-  <text x="130" y="194" text-anchor="middle" class="text">PyTorch / Transformers</text>
-  <rect x="270" y="105" width="190" height="125" class="box" fill="#fef3c7"/>
-  <text x="365" y="140" text-anchor="middle" class="label">固定配置</text>
-  <text x="365" y="170" text-anchor="middle" class="text">模型与 workload</text>
-  <text x="365" y="194" text-anchor="middle" class="text">seed / warmup / repeats</text>
-  <rect x="505" y="82" width="280" height="171" class="box" fill="#dcfce7"/>
-  <text x="645" y="120" text-anchor="middle" class="label">两组训练对照</text>
-  <text x="645" y="155" text-anchor="middle" class="text">FP32 baseline</text>
-  <text x="645" y="181" text-anchor="middle" class="text">AMP candidate</text>
-  <text x="645" y="220" text-anchor="middle" class="text">zero_grad → forward → backward</text>
-  <text x="645" y="241" text-anchor="middle" class="text">→ optimizer.step</text>
-  <rect x="830" y="105" width="155" height="125" class="box" fill="#fce7f3"/>
-  <text x="907" y="140" text-anchor="middle" class="label">记录指标</text>
-  <text x="907" y="170" text-anchor="middle" class="text">时间 / 吞吐</text>
-  <text x="907" y="194" text-anchor="middle" class="text">显存 / loss</text>
-  <rect x="1030" y="105" width="135" height="125" class="box" fill="#ede9fe"/>
-  <text x="1097" y="140" text-anchor="middle" class="label">保存 JSON</text>
-  <text x="1097" y="170" text-anchor="middle" class="text">73 baseline</text>
-  <text x="1097" y="194" text-anchor="middle" class="text">供 76 对照</text>
-  <line x1="225" y1="168" x2="265" y2="168" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
-  <line x1="460" y1="168" x2="500" y2="168" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
-  <line x1="785" y1="168" x2="825" y2="168" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
-  <line x1="985" y1="168" x2="1025" y2="168" stroke="#64748b" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect width="1740" height="650" fill="#f8fafc"/>
+  <text x="870" y="42" text-anchor="middle" class="title">73：GPU 训练精度对照实验流程</text>
+
+  <!-- 共同输入与测量条件 -->
+  <rect x="30" y="255" width="205" height="120" class="box" fill="#e0f2fe"/>
+  <text x="132" y="292" text-anchor="middle" class="label">环境与输入</text>
+  <text x="132" y="324" text-anchor="middle" class="text">GPU / CUDA / PyTorch</text>
+  <text x="132" y="350" text-anchor="middle" class="text">模型与训练数据</text>
+
+  <rect x="275" y="255" width="205" height="120" class="box" fill="#fef3c7"/>
+  <text x="377" y="292" text-anchor="middle" class="label">固定训练条件</text>
+  <text x="377" y="324" text-anchor="middle" class="text">batch / seq_len / optimizer</text>
+  <text x="377" y="350" text-anchor="middle" class="text">learning rate / seed</text>
+
+  <rect x="520" y="255" width="205" height="120" class="box" fill="#fef3c7"/>
+  <text x="622" y="292" text-anchor="middle" class="label">运行模式</text>
+  <text x="622" y="324" text-anchor="middle" class="text">smoke：检查流程</text>
+  <text x="622" y="350" text-anchor="middle" class="text">pressure：正式测量</text>
+
+  <rect x="765" y="255" width="205" height="120" class="box" fill="#fef3c7"/>
+  <text x="867" y="292" text-anchor="middle" class="label">重复测量</text>
+  <text x="867" y="324" text-anchor="middle" class="text">warmup：排除初始化</text>
+  <text x="867" y="350" text-anchor="middle" class="text">repeats：观察波动</text>
+
+  <!-- 两组并行对照 -->
+  <rect x="1010" y="100" width="220" height="120" class="box" fill="#dcfce7"/>
+  <text x="1120" y="137" text-anchor="middle" class="label">FP32 baseline</text>
+  <text x="1120" y="171" text-anchor="middle" class="text">完整 training step</text>
+  <text x="1120" y="197" text-anchor="middle" class="text">作为比较参照</text>
+
+  <rect x="1010" y="390" width="220" height="120" class="box" fill="#dcfce7"/>
+  <text x="1120" y="427" text-anchor="middle" class="label">AMP candidate</text>
+  <text x="1120" y="461" text-anchor="middle" class="text">本轮变量：dtype</text>
+  <text x="1120" y="487" text-anchor="middle" class="text">BF16；不可用时用 FP16</text>
+
+  <!-- 统一指标分组 -->
+  <rect x="1280" y="100" width="280" height="410" class="box" fill="#fce7f3"/>
+  <text x="1420" y="137" text-anchor="middle" class="group">统一指标</text>
+  <text x="1420" y="164" text-anchor="middle" class="text">两组对照使用同一记录口径</text>
+
+  <rect x="1305" y="195" width="110" height="88" class="metric" fill="#fff1f2"/>
+  <text x="1360" y="228" text-anchor="middle" class="label">时间</text>
+  <text x="1360" y="255" text-anchor="middle" class="text">step time</text>
+
+  <rect x="1430" y="195" width="110" height="88" class="metric" fill="#fff1f2"/>
+  <text x="1485" y="228" text-anchor="middle" class="label">吞吐</text>
+  <text x="1485" y="255" text-anchor="middle" class="text">samples/s</text>
+
+  <rect x="1305" y="310" width="110" height="88" class="metric" fill="#fff1f2"/>
+  <text x="1360" y="343" text-anchor="middle" class="label">显存</text>
+  <text x="1360" y="370" text-anchor="middle" class="text">allocated / reserved</text>
+
+  <rect x="1430" y="310" width="110" height="88" class="metric" fill="#fff1f2"/>
+  <text x="1485" y="343" text-anchor="middle" class="label">训练状态</text>
+  <text x="1485" y="370" text-anchor="middle" class="text">loss / status</text>
+
+  <!-- 报告输出 -->
+  <rect x="1610" y="225" width="105" height="160" class="box" fill="#ede9fe"/>
+  <text x="1662" y="267" text-anchor="middle" class="label">JSON</text>
+  <text x="1662" y="301" text-anchor="middle" class="text">配置</text>
+  <text x="1662" y="327" text-anchor="middle" class="text">结果</text>
+  <text x="1662" y="353" text-anchor="middle" class="text">证据级别</text>
+
+  <!-- 连接线：转角后保留足够直线再进入箭头 -->
+  <line x1="235" y1="315" x2="270" y2="315" class="flow"/>
+  <line x1="480" y1="315" x2="515" y2="315" class="flow"/>
+  <line x1="725" y1="315" x2="760" y2="315" class="flow"/>
+  <path d="M970 315 L985 315 L985 160 L1005 160" class="flow"/>
+  <path d="M970 315 L985 315 L985 450 L1005 450" class="flow"/>
+  <path d="M1230 160 L1250 160 L1250 245 L1275 245" class="flow"/>
+  <path d="M1230 450 L1250 450 L1250 355 L1275 355" class="flow"/>
+  <line x1="1560" y1="305" x2="1605" y2="305" class="flow"/>
 </svg>

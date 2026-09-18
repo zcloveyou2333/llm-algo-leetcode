@@ -1,6 +1,6 @@
 # 19. Activation Checkpointing and Activation Offload | 激活检查点
 
-**难度：** Hard | **环境：** GPU-optional
+**难度：** Hard | **环境：** CPU-first（机制验证）
 
 > 🚀 **云端运行环境**
 >
@@ -15,15 +15,15 @@
 
 ## 本节导读
 
-训练大模型时，参数只是显存账本的一部分；随着训练规模和上下文长度变化，计算过程中产生的中间状态也会形成资源压力。本节围绕这类训练状态建立观察口径，帮助你把显存占用、计算时间和传输代价放在同一个问题中理解。
+训练大模型时，参数只是显存账本的一部分；随着训练规模和上下文长度变化，计算过程中产生的中间状态也会形成资源压力。本节从“反向传播需要哪些中间状态”这个问题出发，带你观察保存、重算和搬运分别改变了什么代价。
 
-学习完成后，你应该能够判断训练显存压力出现在哪个阶段，说明资源代价发生了什么转移，并为后续实验提出可比较的观察指标。相关实现和真实 workload 测量放在后续实验步骤中展开。
+学习完成后，你应该能够定位训练显存压力出现的阶段，解释资源代价如何在显存、计算时间和传输之间转移，并提出可以复查的观察指标。
 
 **关键词：** `checkpointing`, `recompute`
 
 ## 前置阅读
 
-**导语：** 先看训练闭环、反向传播和显存账本，再进入 checkpointing：本节关注的是当前反向路径需要哪些激活，哪些中间结果可以通过重算来换取显存空间。
+**导语：** 先从训练闭环、反向传播和显存账本理解“为什么要保留激活”，再观察 checkpointing 如何在反向阶段重算部分前向结果，以换取显存空间。
 
 - [P0: 13. Simple Neural Network Training | 简单神经网络训练循环](../00_Prerequisites/13_Simple_Neural_Network_Training.md)
 - [18. Activation and Loss Backward | 激活与损失反向](../02_PyTorch_Algorithms/18_Activation_and_Loss_Backward.md)
@@ -81,21 +81,19 @@ checkpoint 为一段前向计算建立重算边界：前向阶段保留边界输
 
 实现时重点观察：checkpoint 减少的是区段内部激活驻留；参数、梯度和 optimizer state 仍然存在；粒度变化会同时影响保存点数量和重算范围。
 
-### 提示
+### 实现提示
 
-- 逐 Block 版本可以把 `checkpoint(...)` 包在每个 block 前向外面；不要在 TODO 中修改 block 参数或原地改写输入。
-- 分段版本要先确定 `[start:end]`，再定义只接收一个 Tensor 的 segment forward 函数。
-- 注意 Python 闭包不要错误捕获循环变量；每次循环都要绑定当前 segment。
-- `segment_size=1` 在本实现中应与逐 Block checkpoint 对齐；segment 越大，保存点更少，但每次反向重算的片段更长。
-- `use_reentrant=False` 是当前 PyTorch 文档中常用的非重入实现；实际项目仍应按当前版本文档和模型约束确认选项。
-- 先保证逐层和分段两种实现都能通过 CPU correctness，再比较不同 `segment_size` 的代价。
+- 逐 Block 版本直接包裹每个 block；分段版本先确定 `[start:end]`，再执行当前连续片段。
+- 每轮循环都要绑定当前 `segment`，避免闭包在反向重算时引用最后一段。
+- `segment_size=1` 应与逐 Block 路径对齐；更大的 segment 通常减少保存点，但扩大单次重算范围。
+- 先通过 CPU correctness，再在相同 workload 下比较峰值显存和 step time；`use_reentrant=False` 需按当前 PyTorch 版本确认。
 
 ### 工程要点
 
-- Checkpointing 是**用重算换显存**：减少部分中间激活驻留，但不会删除参数、梯度或 optimizer state。
-- Offload 是**用搬运换显存**，与 checkpointing 的代价路径不同；机制对照见 [42. 激活卸载](./42_Activation_Offload.md)。
-- 激活占比、序列长度、模型深度和 checkpoint 粒度共同决定收益，不能预设固定节省比例。
-- 本节只验证机制和 CPU correctness；真实 GPU 峰值、吞吐和 step time 由 `73 / 76` 的固定 workload 实验测量。
+- Checkpointing 是用重算换显存，Offload 是用搬运换显存；二者作用对象和代价路径不同。
+- 收益取决于激活占比、序列长度、模型深度、dtype 和 checkpoint 粒度，不能预设固定节省比例。
+- 本节验证机制和 CPU correctness；真实 GPU 峰值、吞吐和 step time 由 `73 / 76` 的固定 workload 实验测量。
+- 与混合精度、ZeRO 或模型并行组合时，应分别记录作用对象和新增代价。
 
 
 ```python
@@ -103,13 +101,7 @@ import torch
 import torch.nn as nn
 from torch.utils.checkpoint import checkpoint
 
-RUN_REAL_GPU = False
-GPU_BATCH_SIZE = 1
-GPU_SEQ_LEN = 1024
-GPU_DIM = 1024
-GPU_NUM_LAYERS = 8
 
-# GPU 峰值实验默认关闭，避免 Notebook 自动抢占学习者正在使用的显存。
 
 ```
 
@@ -216,7 +208,7 @@ def run_with_segment_checkpointing(blocks: nn.ModuleList, x: torch.Tensor, segme
 
 ### 测试
 
-运行下面的测试单元：默认先验证开启 checkpointing 后的输出与反向传播 correctness。GPU 峰值观察必须显式设置 `RUN_REAL_GPU=True`，因为 Notebook 自动启动 GPU workload 可能抢占学习者已有进程的显存，也可能在不同设备上直接 OOM；显式开关能让学习者先确认 workload、空闲显存和进程状态。这里的 GPU 结果仍只是 toy observation，真实模型的显存、吞吐和 step time 对比请在 `73` 建立 baseline，并在 `76` 比较 checkpoint / offload / hybrid。
+运行下面的测试单元：先验证开启 checkpointing 后的输出与反向传播 correctness。显存峰值、吞吐和 step time 不在本节自动启动；需要真实模型和统一 workload 时，再到 `73` 建立 baseline，并在 `76` 比较 checkpoint / offload / hybrid。
 
 ```python
 # 运行此单元格以测试你的实现
@@ -260,67 +252,10 @@ def _run_cpu_correctness_check():
     out_one = run_with_segment_checkpointing(blocks, x_one, segment_size=1)
     assert torch.allclose(out_ckpt, out_one, atol=1e-5, rtol=1e-4), "segment_size=1 应与逐层 checkpoint 一致"
     print("✅ CPU correctness 测试通过：逐层与分段 checkpoint 的输出和梯度保持一致。")
-
-
-def _run_gpu_memory_check():
-    # 清空显存
-    torch.cuda.empty_cache()
-
-    # 使用配置中的 toy workload，观察当前模型结构下的峰值显存。
-    dim = GPU_DIM
-    num_layers = GPU_NUM_LAYERS
-    blocks = nn.ModuleList([SimpleTransformerBlock(dim) for _ in range(num_layers)]).cuda()
-
-    # 按 GPU_BATCH_SIZE 和 GPU_SEQ_LEN 创建输入，实际数值以配置单元为准。
-    x_input = torch.randn(GPU_BATCH_SIZE, GPU_SEQ_LEN, dim, device='cuda', requires_grad=True)
-
-    print("1. 测试不开启 Checkpointing 的显存占用...")
-    torch.cuda.reset_peak_memory_stats()
-    out_normal = run_without_checkpointing(blocks, x_input)
-    out_normal.sum().backward()
-    mem_normal = torch.cuda.max_memory_allocated() / (1024 ** 2)
-    print(f"   Peak VRAM (Normal): {mem_normal:.2f} MB")
-
-    del out_normal
-    x_input.grad = None
-    torch.cuda.empty_cache()
-    torch.cuda.reset_peak_memory_stats()
-
-    print("\n2. 测试开启 Checkpointing 的显存占用...")
-    out_ckpt = run_with_checkpointing(blocks, x_input)
-    out_ckpt.sum().backward()
-    mem_ckpt = torch.cuda.max_memory_allocated() / (1024 ** 2)
-    print(f"   Peak VRAM (Checkpointing): {mem_ckpt:.2f} MB")
-
-    savings = (1 - mem_ckpt / mem_normal) * 100
-    print(f"\n显存节省: {savings:.1f}%")
-
-    if mem_ckpt <= mem_normal:
-        print(f"✅ GPU 显存测试通过。显存节省 {savings:.1f}%")
-        if savings < 5:
-            print(" 注意：显存节省效果较小。这是因为：")
-            print("   - 模型层数较少（20层），激活值占总显存比例不高")
-            print("   - 在更深的模型或更长的序列中，节省效果可能更明显，但仍需实测")
-            print("   - 这里只能说明当前 toy workload 的结果；真实模型需要在固定 workload 下单独测量")
-        else:
-            print(" 实际显存节省效果取决于模型深度、序列长度和 GPU 架构。")
-            print("   在更深的模型或更长的序列中，节省效果可能更明显；具体结果仍取决于 workload。")
-    else:
-        raise AssertionError("显存占用反而增加了，请检查实现是否正确。")
-
-
 def test_gradient_checkpointing():
     try:
         _run_cpu_correctness_check()
 
-        if RUN_REAL_GPU and torch.cuda.is_available():
-            _run_gpu_memory_check()
-        else:
-            print("⏭️ GPU 峰值实验默认关闭；如需观察 toy workload，请设置 RUN_REAL_GPU=True，并先确认显存预算。")
-
-    except torch.cuda.OutOfMemoryError as e:
-        print(f"⏭️ GPU toy workload 发生 OOM，未形成显存结论：{e}")
-        return
     except NotImplementedError:
         print("请先完成 TODO 部分的代码！")
         raise
@@ -364,12 +299,6 @@ test_gradient_checkpointing()
 import torch
 import torch.nn as nn
 from torch.utils.checkpoint import checkpoint
-
-RUN_REAL_GPU = False
-GPU_BATCH_SIZE = 1
-GPU_SEQ_LEN = 1024
-GPU_DIM = 1024
-GPU_NUM_LAYERS = 8
 
 class SimpleTransformerBlock(nn.Module):
     def __init__(self, dim):
@@ -493,18 +422,18 @@ def run_with_segment_checkpointing(blocks: nn.ModuleList, x: torch.Tensor, segme
 - **尾段处理**：边界函数会自然处理不足一个完整 segment 的尾部。
 - **粒度含义**：`segment_size=1` 接近逐 Block checkpoint；更大的 segment 通常减少保存点，但单次重算范围更长。
 
-**核心机制**
+**实现结果与验证口径**
 1. **前向传播阶段**：正常执行前向计算，并减少 checkpoint 区段内部为反向保存的中间激活；具体保留项由实现决定
 2. **反向传播阶段**：遇到需要梯度的地方，从最近的 checkpoint 点重新执行前向传播，恢复激活值后立即计算梯度
 3. **时间换空间权衡**：重计算会增加 step time，但没有通用的固定百分比；需要在相同 workload 下同时比较峰值显存、吞吐和质量。
 
-**显存节省分析**
+**指标与代价解释**
 - **未启用 checkpoint 的简化上界**：若实现为反向保留每层主要激活，其激活账本可近似随 O(L × B × S × D) 增长，其中 L 是层数，B 是 batch size，S 是序列长度，D 是隐藏维度；这不是完整显存公式。
 - **Gradient Checkpointing**：减少部分区段的中间状态驻留；具体峰值取决于 checkpoint 粒度、算子实现和其他显存对象，不能简单写成固定复杂度公式。
 - **理论趋势**：segment 越大，保存点越少，但单次重算的片段更长；不能从层数直接推出固定节省比例。
 - **实际效果**：取决于模型结构、序列长度、dtype、参数/梯度/优化器状态占比和实现方式；简单模型中总显存变化可能很小。
 
-**工程优化要点**
+**后续实验记录项**
 - **粒度选择**：通常在每个 Transformer Block 级别设置 checkpoint，而非每个子层。过细的粒度会增加重计算开销，过粗的粒度显存节省有限
 - **计算开销**：重计算会增加 step time，具体比例需要在相同 workload 下测量，不能预设固定百分比
 - **混合策略**：可以只对部分层使用 checkpoint，以平衡显存和速度；“前半段”或“后半段”并不存在对所有模型都成立的固定选择，应由账本和测量决定。

@@ -29,32 +29,27 @@
 **导语：** 进入本节前，先理解权重压缩如何降低底座成本，再理解 LoRA 旁路如何承担可训练参数。
 - [10. LoRA Tutorial | LoRA 教程](./10_LoRA_Tutorial.md)
 - [13. End-to-End Fine-Tuning Experiment | 端到端微调实验](./13_End_to_End_Fine_Tuning_Experiment.md)
-- [25. Quantization W8A16 | W8A16 量化](./25_Quantization_W8A16.md)
+- [25. W8A16 Quantization | W8A16 量化](./25_Quantization_W8A16.md)
 - [P1: 21. Quantization Theory and INT4/INT8 | 量化理论与 INT4/INT8](../01_Hardware_Math_and_Systems/21_Quantization_Theory_and_INT4_INT8.md)
 - [P1: 06. VRAM Calculation and ZeRO | 显存计算与 ZeRO 优化](../01_Hardware_Math_and_Systems/06_VRAM_Calculation_and_ZeRO.md)
 - [P1: 12. TensorCore and Mixed Precision | Tensor Core 与混合精度](../01_Hardware_Math_and_Systems/12_TensorCore_and_Mixed_Precision.md)
 
 ---
 
-### Step 1: 核心机制
+### Step 1: 底座冻结与 LoRA 旁路
 
-> **为什么普通的 4-bit 均匀量化不适合微调大模型？**
-> 
-> 关键在于权重的统计特性与均匀量化不匹配。神经网络的权重通常服从正态分布（钟形曲线），中间多，两头少。但普通的 4-bit 均匀量化（16 个等间隔码点）是均匀分布的。这会导致大量的精度浪费。
+QLoRA 面向显存受限的参数高效微调：底座权重压缩为 4-bit 并冻结，LoRA 旁路保留少量可训练参数。前向时，底座权重通过 NF4 查表恢复到计算精度，再与 LoRA 更新相加；反向时主要更新 LoRA 参数。
 
-> **NF4 (NormalFloat 4-bit) 的本质：**
-> 
-> 我们根据标准正态分布的累积分布函数（CDF）划分出 16 个等概率区间，并取每个区间的分位点作为对应码点。这样得到的 16 个 NF4 码点在 0 附近更密集、在尾部更稀疏，因此更贴合权重的分布特性。它们在存储时只用 4 个 bit 表示索引 0 到 15，但对应的真实数值是预先定义好的浮点码点。
+| 参与对象 | 存储或计算方式 | 是否更新 | 在训练流中的作用 |
+|---|---|---|---|
+| 底座权重 `W` | NF4 索引，前向时查表恢复 | 冻结 | 提供压缩后的基础模型能力 |
+| NF4 码点与 scale | 查表和缩放信息 | 不作为训练参数 | 把 4-bit 表示还原为计算权重 |
+| LoRA 旁路 `A、B` | 高精度低秩矩阵 | 更新 | 学习任务相关的权重变化 |
+| 前向输出 | `W_nf4 x` 与 `BAx` 合并 | 由 LoRA 梯度驱动 | 同时利用底座能力与微调增量 |
 
-> **QLoRA 的训练流：**
-> 1. 基础权重（Base Weights）以 NF4 索引的形式存储（每个参数占 4 位），并在微调过程中冻结，不参与梯度更新。
-> 2. 前向传播时，先查表把 NF4 索引还原成高精度权重，再交给线性层计算。
-> 3. LoRA 旁路保持高精度并参与训练。
-> 4. 反向传播时，梯度主要更新 LoRA 旁路参数；底座权重保持冻结，只负责提供稳定的量化存储。**一句话总结** QLoRA 的核心就是：底座权重用 NF4 压缩显存，LoRA 旁路保持高精度以保证微调效果。两者分工明确，互不干扰。
+下面先解释 NF4 如何选择码点，再说明这些码点如何进入反量化和 LoRA 前向。
 
-理解了 NF4 在 QLoRA 中的角色之后，下一步我们来看 NF4 的码点具体是怎么算出来的。
-
-![QLoRA 流程图](/02_PyTorch_Algorithms/26_qlora_flow.svg)
+![QLoRA 流程图](../public/02_PyTorch_Algorithms/26_qlora_flow.svg)
 
 ### Step 2: 4-bit NormalFloat (NF4) 原理
 NF4 的核心是一个预计算的 16 码点 lookup table。它基于标准正态分布的 CDF / 分位数函数（quantile function）构造，使码点在 0 附近更密集、在尾部更稀疏，因此比均匀 4-bit 更贴合神经网络权重的统计特性。
@@ -69,24 +64,33 @@ $$
 
 其中 $\Phi$ 表示标准正态分布的累积分布函数（CDF），$\Phi^{-1}$ 是其反函数（分位数函数）。实际实现中，这些码点会预先计算并存为 lookup table。
 
-NF4 解决了基础权重的极致压缩问题，而 QLoRA 的可训练能力来自 LoRA 策略。LoRA 旁路的具体形式是：在 QLoRA 中，$A$ 负责将输入投影到低秩空间，$B$ 再将低秩特征映射回输出维度，二者共同构成权重更新 $\Delta W = B \cdot A$。基础权重 $W$ 保持冻结，可训练参数从完整矩阵 $W$ 降为两个低秩矩阵 $A$和$B$。QLoRA 还配合 Double Quantization，对 NF4 量化过程中产生的 scale 等元数据再做一次量化，进一步压缩其存储开销。
+Double Quantization 还可以进一步压缩 scale 等量化元数据；它属于 NF4 存储路径的扩展，不改变“底座冻结、LoRA 更新”的训练分工。
 
-### Step 3: 代码实现框架
-本节我们将模拟 QLoRA 的前向传播链路。这里使用纯 PyTorch 演示 NF4 的核心逻辑，而不是调用真实的 bitsandbytes C++/CUDA 内核；两者的核心思想一致，都是先通过查表完成 NF4 反量化，再进行后续计算。
+| 表示方式 | 码点来源 | 码点分布 | 对微调的意义 |
+|---|---|---|---|
+| INT4 | 等间隔整数码点 | 均匀铺点 | 实现简单，但不一定贴合权重分布 |
+| NF4 | 标准正态分布分位点 | 0 附近更密、尾部更疏 | 在相同 4-bit 索引下更贴近常见权重分布 |
+| NF4 + Double Quantization | NF4 码点与再次量化的 scale | 权重和元数据都压缩 | 进一步降低底座存储开销 |
+### Step 3: NF4 反量化与 LoRA 前向融合
+Step 2 说明了 NF4 码点如何贴合权重分布。本步继续追踪它们如何进入一次前向：先用索引查表得到近似底座权重，再与 LoRA 旁路产生的低秩增量合并。
 
-本节的代码会拆成两步：
-- NF4 反量化：通过查表（Lookup Table）将 4-bit 索引还原为高精度浮点权重
-- 前向融合：将反量化后的基础权重计算结果与 LoRA 旁路输出相加。这样就能把“存储用 4-bit、计算用高精度”这条核心思路落实到代码实现中。LoRA 旁路的计算可写为：
+底座路径和旁路路径的关系可以写成：
 
 $$
 (x A^\top) B^\top \cdot \mathrm{scaling}
 $$
 
-在 Step 4 中，我们将把这两步落到一个完整的 `QLoRALinearSim` 类里，逐行补全 NF4 查表和前向融合的实现。
+其中 $W_{NF4}$ 在反向传播中保持冻结，$A$ 和 $B$ 承担可训练更新；Step 4 再把查表、缩放和前向融合落到教学类中。
 
-### Step 4: 动手实战
+### Step 4: 实现并验证 QLoRA 前向
 
-**要求**：请补全下方 `QLoRALinearSim` 类。为了不引入复杂的 C++ BitsAndBytes 底层实现，我们将用纯 PyTorch 模拟查表反量化和前向传播。
+请补全下方 `QLoRALinearSim` 类，用纯 PyTorch 模拟查表反量化和前向融合，不引入 BitsAndBytes 的底层 kernel。
+| 实现部分 | 需要完成的内容 | 验证重点 |
+|---|---|---|
+| NF4 查表 | 根据 4-bit index 读取预定义码点 | 索引范围和输出 dtype |
+| 底座路径 | 应用 scale，得到近似浮点权重并完成线性计算 | 底座参数保持冻结 |
+| LoRA 路径 | 计算低秩增量并按 scaling 合并 | `A`、`B` 可以获得梯度 |
+| 前向输出 | 合并底座输出与 LoRA 输出 | shape 正确、结果有限且可复现 |
 
 
 ```python

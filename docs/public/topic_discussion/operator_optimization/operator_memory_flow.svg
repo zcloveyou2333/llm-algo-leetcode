@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="430" viewBox="0 0 1100 430">
+  <defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#486581"/></marker><style>.t{font:700 27px sans-serif;fill:#17324d}.s{font:15px sans-serif;fill:#486581}.h{font:700 18px sans-serif;fill:#17324d}.x{font:15px sans-serif;fill:#334e68}.b{stroke:#829ab1;stroke-width:2;rx:14}.l{stroke:#486581;stroke-width:3;fill:none;marker-end:url(#a)}</style></defs>
+  <rect width="1100" height="430" fill="#f7fafc"/><text x="550" y="40" text-anchor="middle" class="t">Kernel 数据路径：搬运、复用与归约</text><text x="550" y="68" text-anchor="middle" class="s">先保证有效元素和边界正确，再观察数据是否在更近的层级被复用</text>
+  <rect x="45" y="140" width="180" height="150" fill="#e6f6f5" class="b"/><text x="135" y="180" text-anchor="middle" class="h">Global Memory</text><text x="135" y="220" text-anchor="middle" class="x">输入 / 输出张量</text><text x="135" y="250" text-anchor="middle" class="x">合并访问与带宽</text>
+  <path d="M225 215H270" class="l"/>
+  <rect x="270" y="140" width="180" height="150" fill="#fff4e6" class="b"/><text x="360" y="180" text-anchor="middle" class="h">Tile / Layout</text><text x="360" y="220" text-anchor="middle" class="x">线程映射</text><text x="360" y="250" text-anchor="middle" class="x">mask 与边界</text>
+  <path d="M450 215H495" class="l"/>
+  <rect x="495" y="140" width="180" height="150" fill="#eef2ff" class="b"/><text x="585" y="180" text-anchor="middle" class="h">片上复用</text><text x="585" y="220" text-anchor="middle" class="x">Shared / Register</text><text x="585" y="250" text-anchor="middle" class="x">同步与工作集</text>
+  <path d="M675 215H720" class="l"/>
+  <rect x="720" y="140" width="180" height="150" fill="#eef2ff" class="b"/><text x="810" y="180" text-anchor="middle" class="h">并行归约</text><text x="810" y="220" text-anchor="middle" class="x">局部结果合并</text><text x="810" y="250" text-anchor="middle" class="x">累加 dtype</text>
+  <path d="M900 215H945" class="l"/>
+  <rect x="945" y="140" width="110" height="150" fill="#f0f4f8" class="b"/><text x="1000" y="180" text-anchor="middle" class="h">结果</text><text x="1000" y="220" text-anchor="middle" class="x">数值</text><text x="1000" y="250" text-anchor="middle" class="x">性能</text>
+  <text x="550" y="365" text-anchor="middle" class="s">layout 决定访问，复用决定搬运，归约决定同步与数值；三者共同影响 kernel 成本。</text>
+</svg>

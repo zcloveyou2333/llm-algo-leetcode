@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="680" viewBox="0 0 1400 680" role="img" aria-labelledby="title desc">
+  <title id="title">异常定位与最小复现</title><desc id="desc">从异常现象出发，沿结构、数值和梯度三条路径找到第一处异常并保留最小复现。</desc>
+  <style>text{font-family:"Noto Sans SC","Microsoft YaHei",sans-serif;fill:#172033}.title{font-size:30px;font-weight:700}.sub{font-size:16px;fill:#475569}.group{font-size:18px;font-weight:700;fill:#334155}.label{font-size:16px;font-weight:700}.small{font-size:13px;fill:#475569}.panel{stroke-width:2;rx:18;ry:18}.node{stroke-width:2;rx:13;ry:13}.line{stroke:#52606d;stroke-width:3;stroke-linecap:round;fill:none}.branch{stroke:#94a3b8;stroke-width:3;stroke-linecap:round;fill:none}</style>
+  <rect width="1400" height="680" fill="#f8fafc"/>
+  <text x="58" y="55" class="title">异常定位：从现象回到最小复现</text>
+  <text x="58" y="87" class="sub">先确认哪类契约被破坏，再沿最短路径找到第一处异常，最后保留可以重复运行的案例。</text>
+  <rect x="525" y="110" width="350" height="86" class="node" fill="#fee2e2" stroke="#f87171"/>
+  <text x="700" y="147" text-anchor="middle" class="label">异常现象</text><text x="700" y="176" text-anchor="middle" class="small">报错、结果异常或梯度缺失</text>
+
+  <rect x="35" y="250" width="410" height="350" class="panel" fill="#ecfdf5" stroke="#86efac"/>
+  <text x="55" y="285" class="group">结构路径</text>
+  <rect x="90" y="320" width="300" height="58" class="node" fill="#ffffff" stroke="#4ade80"/><text x="240" y="355" text-anchor="middle" class="label">输入契约：shape</text>
+  <rect x="90" y="405" width="300" height="58" class="node" fill="#ffffff" stroke="#4ade80"/><text x="240" y="440" text-anchor="middle" class="label">执行位置：dtype / device</text>
+  <rect x="90" y="490" width="300" height="58" class="node" fill="#ffffff" stroke="#4ade80"/><text x="240" y="525" text-anchor="middle" class="label">布局出口：layout / contiguous</text>
+  <line x1="240" y1="378" x2="240" y2="405" class="line"/><path d="M232 397L240 405L248 397Z" fill="#52606d"/>
+  <line x1="240" y1="463" x2="240" y2="490" class="line"/><path d="M232 482L240 490L248 482Z" fill="#52606d"/>
+
+  <rect x="495" y="250" width="410" height="350" class="panel" fill="#fff7ed" stroke="#fdba74"/>
+  <text x="515" y="285" class="group">数值路径</text>
+  <rect x="550" y="320" width="300" height="58" class="node" fill="#ffffff" stroke="#f59e0b"/><text x="700" y="355" text-anchor="middle" class="label">输入检查：有限性</text>
+  <rect x="550" y="405" width="300" height="58" class="node" fill="#ffffff" stroke="#f59e0b"/><text x="700" y="440" text-anchor="middle" class="label">传播过程：激活与 loss</text>
+  <rect x="550" y="490" width="300" height="58" class="node" fill="#ffffff" stroke="#f59e0b"/><text x="700" y="525" text-anchor="middle" class="label">定位出口：第一处 NaN / Inf</text>
+  <line x1="700" y1="378" x2="700" y2="405" class="line"/><path d="M692 397L700 405L708 397Z" fill="#52606d"/>
+  <line x1="700" y1="463" x2="700" y2="490" class="line"/><path d="M692 482L700 490L708 482Z" fill="#52606d"/>
+
+  <rect x="955" y="250" width="410" height="350" class="panel" fill="#f5f3ff" stroke="#c4b5fd"/>
+  <text x="975" y="285" class="group">梯度路径</text>
+  <rect x="1010" y="320" width="300" height="58" class="node" fill="#ffffff" stroke="#a78bfa"/><text x="1160" y="355" text-anchor="middle" class="label">图状态：中间状态与计算图</text>
+  <rect x="1010" y="405" width="300" height="58" class="node" fill="#ffffff" stroke="#a78bfa"/><text x="1160" y="440" text-anchor="middle" class="label">追踪条件：detach / no_grad</text>
+  <rect x="1010" y="490" width="300" height="58" class="node" fill="#ffffff" stroke="#a78bfa"/><text x="1160" y="525" text-anchor="middle" class="label">定位出口：参数与梯度</text>
+  <line x1="1160" y1="378" x2="1160" y2="405" class="line"/><path d="M1152 397L1160 405L1168 397Z" fill="#52606d"/>
+  <line x1="1160" y1="463" x2="1160" y2="490" class="line"/><path d="M1152 482L1160 490L1168 482Z" fill="#52606d"/>
+
+  <line x1="700" y1="196" x2="700" y2="220" class="branch"/><line x1="240" y1="220" x2="1160" y2="220" class="branch"/>
+  <line x1="240" y1="220" x2="240" y2="320" class="line"/><path d="M232 312L240 320L248 312Z" fill="#52606d"/>
+  <line x1="700" y1="220" x2="700" y2="320" class="line"/><path d="M692 312L700 320L708 312Z" fill="#52606d"/>
+  <line x1="1160" y1="220" x2="1160" y2="320" class="line"/><path d="M1152 312L1160 320L1168 312Z" fill="#52606d"/>
+</svg>
