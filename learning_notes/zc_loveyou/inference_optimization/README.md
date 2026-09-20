@@ -13,6 +13,7 @@
 | Task0 | 请求结构与指标 | 已完成 | 进行中 | [Task0 笔记](./task0-request-structure-and-metrics.md) |
 | Task1 | Prefill 与 Attention Kernel | 已完成 | 进行中 | [Task1 笔记](./task1-prefill-and-attention-kernel.md) |
 | Task2 | 单请求 Decode 与生成策略 | 已完成 | 进行中 | [Task2 笔记](./task2-single-request-decode.md) |
+| Task3 | KV Cache 状态与生命周期 | 已完成 | 进行中 | [Task3 笔记](./task3-kv-cache-lifecycle.md) |
 
 ## 每个 Task 的完成标准
 
