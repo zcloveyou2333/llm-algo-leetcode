@@ -16,6 +16,7 @@
 | Task3 | KV Cache 状态与生命周期 | 已完成 | 进行中 | [Task3 笔记](./task3-kv-cache-lifecycle.md) |
 | Task4 | 多请求调度、异构 PD 与 Serving | 已完成 | 进行中 | [Task4 笔记](./task4-multi-request-scheduling.md) |
 | Task5 | 量化部署与成本 | 已完成 | 进行中 | [Task5 笔记](./task5-quantized-deployment-and-cost.md) |
+| Task6 | 总结与遗留问题 | 已完成 | 进行中 | [Task6 笔记](./task6-summary-and-open-questions.md) |
 
 ## 每个 Task 的完成标准
 
