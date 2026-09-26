@@ -1,0 +1,38 @@
+{
+  "stage": "environment_preflight",
+  "run_mode": "dry_run",
+  "runtime": {
+    "python": "3.10.21",
+    "torch": "2.14.0",
+    "cuda": null,
+    "cuda_available": false,
+    "device": "cpu"
+  },
+  "config": {
+    "in_features": 4096,
+    "out_features": 4096,
+    "batch_size": 1,
+    "seq_len": 128,
+    "dtype": "torch.float16",
+    "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+    "warmup": 5,
+    "iters": 20,
+    "seed": 42
+  },
+  "workload": {
+    "model_id": "Qwen/Qwen2.5-0.5B-Instruct",
+    "layer_scope": "one q_proj-like linear layer",
+    "batch_size": 1,
+    "seq_len": 128
+  },
+  "json_path": "benchmarks/results/25_w8a16_gpu.json",
+  "evidence_level": "environment_preflight",
+  "baseline": "FP16 layer in memory",
+  "candidate": "W8A16 layer in memory",
+  "artifact_path": null,
+  "failure": null,
+  "decision": {
+    "decision": "ready_to_measure",
+    "reason": "仅完成环境与配置检查，尚未运行 GPU 机制测量。"
+  }
+}

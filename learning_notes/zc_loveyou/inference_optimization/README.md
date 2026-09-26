@@ -15,6 +15,7 @@
 | Task2 | 单请求 Decode 与生成策略 | 已完成 | 进行中 | [Task2 笔记](./task2-single-request-decode.md) |
 | Task3 | KV Cache 状态与生命周期 | 已完成 | 进行中 | [Task3 笔记](./task3-kv-cache-lifecycle.md) |
 | Task4 | 多请求调度、异构 PD 与 Serving | 已完成 | 进行中 | [Task4 笔记](./task4-multi-request-scheduling.md) |
+| Task5 | 量化部署与成本 | 已完成 | 进行中 | [Task5 笔记](./task5-quantized-deployment-and-cost.md) |
 
 ## 每个 Task 的完成标准
 
